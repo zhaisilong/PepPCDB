@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime and temporary files
+tmp/
+*.log
+*.tmp
+
+# Local data assets are synchronized or rebuilt, not versioned.
+data/filtered_peppi/
+data/**/*.sqlite3
+data/**/*.sqlite
+data/**/*.db
+data/**/*-wal
+data/**/*-shm
+*.sqlite3
+*.sqlite
+*.db
+*.sqlite3-wal
+*.sqlite3-shm
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
