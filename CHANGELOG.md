@@ -6,7 +6,8 @@
 
 - Updated runtime/document version to `v0.1.2`.
 - Refined the Home hero title and subtitle for the PepPCDB/NAR paper positioning.
-- Compressed Home stats labels and card spacing to reduce wrapping in the first viewport.
+- Changed the Home hero to a centered, narrower panel instead of a full-width block.
+- Compressed Home stats card boxes and reordered them as Entries, Peptides, Clusters, Interfaces, Cyclic, Affinity.
 - Split the search panel into a main search row and a secondary filter row.
 
 ## v0.1.1 - 2026-05-27

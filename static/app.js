@@ -132,11 +132,10 @@ function renderStats(data) {
   statsEl.innerHTML = [
     ["Entries", fmtNum(data.entries)],
     ["Peptides", fmtNum(data.peptide_chains)],
-    ["Interfaces", fmtNum(data.interface_pairs)],
-    ["Affinity", fmtNum(data.affinity_annotations)],
-    ["CIFs", fmtNum(data.cif_files)],
-    ["Cyclic", fmtNum(data.cyclic_pdb_ids)],
     ["Clusters", fmtNum(data.clusters)],
+    ["Interfaces", fmtNum(data.interface_pairs)],
+    ["Cyclic", fmtNum(data.cyclic_pdb_ids)],
+    ["Affinity", fmtNum(data.affinity_annotations)],
   ]
     .map(
       ([label, value]) =>
