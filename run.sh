@@ -10,6 +10,7 @@ VENV_DIR="${PEPPCDB_VENV:-$ROOT_DIR/.venv}"
 VENV_PYTHON="$VENV_DIR/bin/python"
 REQUIREMENTS_FILE="$ROOT_DIR/requirements.txt"
 REQUIREMENTS_STAMP="$VENV_DIR/.requirements.sha256"
+USAGE_SALT_FILE="${PEPPCDB_USAGE_SALT_FILE:-$ROOT_DIR/data/usage_salt}"
 
 if [[ ! -x "$VENV_PYTHON" ]]; then
   echo "Creating Python virtual environment at $VENV_DIR"
@@ -42,6 +43,19 @@ export PEPPCDB_DB="${PEPPCDB_DB:-$ROOT_DIR/data/peppcdb.sqlite3}"
 export PEPPCDB_DATASET="${PEPPCDB_DATASET:-$ROOT_DIR/data/filtered_peppi}"
 export PEPPCDB_TARGET_CARDS_JSONL="${PEPPCDB_TARGET_CARDS_JSONL:-$ROOT_DIR/data/records/target_cards.jsonl}"
 export PEPPCDB_PEP_ANNOTATIONS_JSONL="${PEPPCDB_PEP_ANNOTATIONS_JSONL:-$ROOT_DIR/data/records/pep_annotations_patched.jsonl}"
+
+if [[ -z "${PEPPCDB_USAGE_SALT:-}" ]]; then
+  if [[ ! -f "$USAGE_SALT_FILE" ]]; then
+    mkdir -p "$(dirname "$USAGE_SALT_FILE")"
+    "$VENV_PYTHON" - <<'PY' > "$USAGE_SALT_FILE"
+import secrets
+
+print(secrets.token_urlsafe(48))
+PY
+    chmod 600 "$USAGE_SALT_FILE"
+  fi
+  export PEPPCDB_USAGE_SALT="$(cat "$USAGE_SALT_FILE")"
+fi
 
 "$VENV_PYTHON" "$ROOT_DIR/scripts/release_check.py" --fast
 

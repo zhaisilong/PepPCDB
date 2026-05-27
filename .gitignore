@@ -20,6 +20,7 @@ tmp/
 data/filtered_peppi/
 data/records/
 data/usage_stats.sqlite3
+data/usage_salt
 data/**/*.sqlite3
 data/**/*.sqlite
 data/**/*.db
