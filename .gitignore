@@ -19,6 +19,7 @@ tmp/
 # Local data assets are synchronized or rebuilt, not versioned.
 data/filtered_peppi/
 data/records/
+data/usage_stats.sqlite3
 data/**/*.sqlite3
 data/**/*.sqlite
 data/**/*.db

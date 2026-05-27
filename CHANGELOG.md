@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.4 - 2026-05-27
+
+### Added
+
+- Added daily unique Home visit and quick download statistics by hashed client IP.
+- Added `GET /api/usage-stats` for aggregate usage counters.
+- Added bottom-of-page About display for visit/download usage statistics.
+- Added ignored persistent usage storage at `data/usage_stats.sqlite3`.
+
+### Changed
+
+- Updated runtime/document version to `v0.1.4`.
+- Cleaned up function JSON download handling so rate limiting and usage counting happen once per successful request.
+
 ## v0.1.3 - 2026-05-27
 
 ### Added

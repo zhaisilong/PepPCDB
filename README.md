@@ -1,12 +1,12 @@
 # PepPCDB Deployment Project
 
-Document version: `v0.1.3`
+Document version: `v0.1.4`
 
 This directory is the new local deployment project for PepPCDB. It contains a FastAPI backend, same-origin static frontend assets, release scripts, and documentation for the peptide-protein complex database portal.
 
 ## Versioning
 
-Version history starts at `v0.1.0` in the documentation. The current document/runtime version is `v0.1.3`. This local repository does not use git tags unless that policy changes later.
+Version history starts at `v0.1.0` in the documentation. The current document/runtime version is `v0.1.4`. This local repository does not use git tags unless that policy changes later.
 
 ## Git Policy
 
@@ -15,6 +15,7 @@ This repository tracks code, scripts, static frontend files, and documentation o
 - `data/filtered_peppi/`
 - `data/records/`
 - SQLite database snapshots
+- Usage statistics database (`data/usage_stats.sqlite3`)
 - SQLite WAL/SHM files
 - caches, logs, and temporary files
 
@@ -41,6 +42,7 @@ Defaults:
 - Structure dataset: `data/filtered_peppi`
 - Target cards: `data/records/target_cards.jsonl`
 - Pep annotations: `data/records/pep_annotations_patched.jsonl`
+- Usage stats: `data/usage_stats.sqlite3`
 
 The app serves both the API and frontend from the same port.
 
@@ -94,3 +96,7 @@ Use `rsync --delete` for structure data refreshes so the deployment copy exactly
 - `GET /api/download/{entry_key}/function.json`
 
 The browser uses additional internal `/api/*` endpoints for search and entry rendering. The stable public API surface is limited to the quick download endpoints above. Public download API requests are limited to 100 requests per client IP per hour.
+
+## Usage Statistics
+
+PepPCDB records lightweight aggregate usage statistics in `data/usage_stats.sqlite3`. Home page visits and quick download API usage are counted as daily unique IP hashes, with one visit and one download counted per client IP per day. Raw IP addresses are not stored; set `PEPPCDB_USAGE_SALT` in deployment to control the hash salt. The About page displays aggregate visit/download totals from `GET /api/usage-stats`.

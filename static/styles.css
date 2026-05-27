@@ -444,6 +444,36 @@ tbody tr:hover {
   font-size: 0.72rem;
 }
 
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.usage-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfdff;
+}
+
+.usage-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.usage-value {
+  margin-top: 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.usage-updated {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+}
+
 .cite-table {
   table-layout: fixed;
 }
@@ -852,6 +882,10 @@ tbody tr:hover {
 
   .stats {
     grid-template-columns: repeat(2, minmax(110px, 1fr));
+  }
+
+  .usage-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .detail-grid {

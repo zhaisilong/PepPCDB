@@ -150,6 +150,13 @@
         <tbody id="devLogBody"></tbody>
       </table>
     </section>
+
+    <section class="detail" id="usage-stats">
+      <h2>Usage Statistics</h2>
+      <p class="muted">Each IP is counted once per day for Home visits and once per day for quick downloads.</p>
+      <div class="usage-grid" id="usageStats"></div>
+      <p class="muted usage-updated" id="usageUpdated"></p>
+    </section>
   </main>
   <footer class="site-footer">
     <div class="footer-inner">
@@ -168,6 +175,10 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+    }
+
+    function fmtNum(n) {
+      return Number(n || 0).toLocaleString();
     }
 
     const fallbackDevLog = [
@@ -195,10 +206,41 @@
       }
     }
 
+    function renderUsageStats(data) {
+      const usageStats = document.getElementById("usageStats");
+      const usageUpdated = document.getElementById("usageUpdated");
+      if (!usageStats) return;
+      const items = [
+        ["Today Visits", data?.visit_today],
+        ["Total Daily Visits", data?.visit_total],
+        ["Today Downloads", data?.download_today],
+        ["Total Daily Downloads", data?.download_total]
+      ];
+      usageStats.innerHTML = items
+        .map(([label, value]) => `
+          <div class="usage-card">
+            <div class="usage-label">${esc(label)}</div>
+            <div class="usage-value">${fmtNum(value)}</div>
+          </div>
+        `)
+        .join("");
+      if (usageUpdated) {
+        usageUpdated.textContent = data?.updated_at ? `Updated at ${data.updated_at}` : "";
+      }
+    }
+
     fetch("./config/about.json")
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("config load failed"))))
       .then((data) => renderAboutConfig(data))
       .catch(() => renderAboutConfig({}));
+
+    fetch("/api/usage-stats")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("usage stats load failed"))))
+      .then((data) => renderUsageStats(data))
+      .catch(() => {
+        const usageStats = document.getElementById("usageStats");
+        if (usageStats) usageStats.innerHTML = '<p class="muted">Usage statistics unavailable.</p>';
+      });
 
     document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
   </script>

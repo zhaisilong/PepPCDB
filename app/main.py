@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -21,6 +22,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 STATIC_DIR = PROJECT_ROOT / "static"
 
 DEFAULT_DB = DATA_DIR / "peppcdb.sqlite3"
+DEFAULT_USAGE_DB = DATA_DIR / "usage_stats.sqlite3"
 DEFAULT_DATASET = DATA_DIR / "filtered_peppi"
 DEFAULT_TARGET_CARDS = DATA_DIR / "records" / "target_cards.jsonl"
 DEFAULT_PEP_ANNOTATIONS = DATA_DIR / "records" / "pep_annotations_patched.jsonl"
@@ -31,12 +33,14 @@ def env_path(name: str, default: Path) -> Path:
 
 
 DB_PATH = env_path("PEPPCDB_DB", DEFAULT_DB)
+USAGE_DB_PATH = env_path("PEPPCDB_USAGE_DB", DEFAULT_USAGE_DB)
 DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
-APP_VERSION = "0.1.3"
+APP_VERSION = "0.1.4"
 DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
 DOWNLOAD_RATE_WINDOW_SECONDS = 3600
+USAGE_SALT = os.environ.get("PEPPCDB_USAGE_SALT", "peppcdb-usage-v1")
 
 
 app = FastAPI(title="PepPCDB", version=APP_VERSION)
@@ -54,6 +58,7 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 @app.on_event("startup")
 def validate_required_assets() -> None:
+    init_usage_db()
     missing = [
         str(path)
         for path in (DB_PATH, DATASET_ROOT, TARGET_CARDS_JSONL, PEP_ANNOTATIONS_JSONL)
@@ -297,6 +302,89 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def usage_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def usage_ip_hash(request: Request) -> str:
+    raw = f"{USAGE_SALT}:{client_key(request)}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def usage_connect() -> sqlite3.Connection:
+    USAGE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(USAGE_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_usage_db() -> None:
+    with usage_connect() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usage_daily_unique (
+                date TEXT NOT NULL,
+                kind TEXT NOT NULL CHECK(kind IN ('visit', 'download')),
+                ip_hash TEXT NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                hits INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (date, kind, ip_hash)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_usage_kind_date
+            ON usage_daily_unique(kind, date)
+            """
+        )
+
+
+def record_usage(request: Request, kind: str) -> None:
+    if kind not in {"visit", "download"}:
+        return
+    today = date.today().isoformat()
+    now = usage_now()
+    try:
+        with usage_connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO usage_daily_unique (date, kind, ip_hash, first_seen_at, last_seen_at, hits)
+                VALUES (?, ?, ?, ?, ?, 1)
+                ON CONFLICT(date, kind, ip_hash) DO UPDATE SET
+                    last_seen_at = excluded.last_seen_at,
+                    hits = usage_daily_unique.hits + 1
+                """,
+                (today, kind, usage_ip_hash(request), now, now),
+            )
+    except sqlite3.Error:
+        return
+
+
+def usage_summary() -> dict[str, Any]:
+    today = date.today().isoformat()
+    with usage_connect() as conn:
+        rows_ = conn.execute(
+            """
+            SELECT kind,
+                   SUM(CASE WHEN date = ? THEN 1 ELSE 0 END) AS today_count,
+                   COUNT(*) AS total_count
+            FROM usage_daily_unique
+            GROUP BY kind
+            """,
+            (today,),
+        ).fetchall()
+    counts = {row["kind"]: {"today": row["today_count"], "total": row["total_count"]} for row in rows_}
+    return {
+        "visit_today": int(counts.get("visit", {}).get("today", 0) or 0),
+        "visit_total": int(counts.get("visit", {}).get("total", 0) or 0),
+        "download_today": int(counts.get("download", {}).get("today", 0) or 0),
+        "download_total": int(counts.get("download", {}).get("total", 0) or 0),
+        "updated_at": usage_now(),
+    }
+
+
 def check_download_rate_limit(request: Request) -> None:
     key = client_key(request)
     now = time.time()
@@ -319,9 +407,23 @@ def function_payload(entry_key: str) -> dict[str, Any]:
     }
 
 
+@app.middleware("http")
+async def record_home_visit(request: Request, call_next: Any) -> Response:
+    response = await call_next(request)
+    path = request.url.path.rstrip("/") or "/"
+    if response.status_code < 400 and path in {"/", "/index.html"}:
+        record_usage(request, "visit")
+    return response
+
+
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     return {"ok": True, "version": APP_VERSION}
+
+
+@app.get("/api/usage-stats")
+def usage_stats() -> dict[str, Any]:
+    return usage_summary()
 
 
 @app.get("/api/stats")
@@ -700,6 +802,7 @@ def download_zip(entry_key: str, request: Request) -> StreamingResponse:
         zf.writestr(f"{str(pdb_id).lower()}_function.json", function_data)
     buffer.seek(0)
     pdb_id = file_rows[0]["pdb_id"]
+    record_usage(request, "download")
     return StreamingResponse(
         buffer,
         media_type="application/zip",
@@ -708,9 +811,9 @@ def download_zip(entry_key: str, request: Request) -> StreamingResponse:
 
 
 def function_json_response(entry_key: str, request: Request) -> Response:
-    check_download_rate_limit(request)
     payload = function_payload(entry_key)
     public_key = str(payload.get("pdb_id") or entry_key).lower()
+    record_usage(request, "download")
     return Response(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         media_type="application/json",
@@ -720,6 +823,7 @@ def function_json_response(entry_key: str, request: Request) -> Response:
 
 @app.get("/api/download/{entry_key}/function.json")
 def download_function_json(entry_key: str, request: Request) -> Response:
+    check_download_rate_limit(request)
     return function_json_response(entry_key, request)
 
 
@@ -731,14 +835,11 @@ def download_file(entry_key: str, filename: str, request: Request) -> Response:
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
         if filename.lower() == f"{str(entry['pdb_id']).lower()}_function.json":
-            _download_rate_state[client_key(request)] = (
-                _download_rate_state[client_key(request)][0],
-                _download_rate_state[client_key(request)][1] - 1,
-            )
             return function_json_response(entry_key, request)
         source_name = source_file_name_from_public(entry["pdb_id"], filename)
         path, _ = resolve_file(conn, entry_key, source_name)
     media_type = "chemical/x-cif" if source_name.lower().endswith(".cif") else "application/octet-stream"
+    record_usage(request, "download")
     return FileResponse(path, media_type=media_type, filename=public_download_name(entry["pdb_id"], source_name))
 
 

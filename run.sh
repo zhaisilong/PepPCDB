@@ -13,5 +13,5 @@ export PEPPCDB_PEP_ANNOTATIONS_JSONL="${PEPPCDB_PEP_ANNOTATIONS_JSONL:-$ROOT_DIR
 
 python3 "$ROOT_DIR/scripts/release_check.py" --fast
 
-echo "Starting PepPCDB v0.1.3 at http://${HOST}:${PORT}"
+echo "Starting PepPCDB v0.1.4 at http://${HOST}:${PORT}"
 exec python3 -m uvicorn app.main:app --host "$HOST" --port "$PORT" --app-dir "$ROOT_DIR"
