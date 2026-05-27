@@ -24,6 +24,8 @@ PEPPCDB_VENV=/path/to/venv ./run.sh
 
 To rebuild the Python environment, remove `.venv` and rerun `./run.sh`.
 
+When publishing behind a path prefix such as `/peppcdb/`, configure the reverse proxy to strip the prefix before forwarding to the app. The frontend derives API URLs from its deployed script path, so both `/` and `/peppcdb/` deployments are supported.
+
 ## Data Assets
 
 This repository tracks code, scripts, static frontend files, and documentation only. Large generated or synchronized assets are intentionally excluded from git:

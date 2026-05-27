@@ -181,6 +181,14 @@
       return Number(n || 0).toLocaleString();
     }
 
+    function appBasePath() {
+      const path = window.location.pathname;
+      if (path.endsWith("/about.html")) return path.slice(0, -"/about.html".length);
+      if (path.endsWith("/index.html")) return path.slice(0, -"/index.html".length);
+      if (path.endsWith("/")) return path.slice(0, -1);
+      return "";
+    }
+
     const fallbackDevLog = [
       { date: "fallback test", update: "fallback test", note: "fallback test" }
     ];
@@ -234,7 +242,7 @@
       .then((data) => renderAboutConfig(data))
       .catch(() => renderAboutConfig({}));
 
-    fetch("/api/usage-stats")
+    fetch(`${appBasePath()}/api/usage-stats`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("usage stats load failed"))))
       .then((data) => renderUsageStats(data))
       .catch(() => {

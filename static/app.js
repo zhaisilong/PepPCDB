@@ -1,4 +1,8 @@
-const API_BASE = "";
+const API_BASE = (() => {
+  const scriptPath = new URL(import.meta.url).pathname;
+  const basePath = scriptPath.replace(/\/app\.js$/, "");
+  return basePath === "/" ? "" : basePath;
+})();
 
 const state = {
   page: 1,

@@ -15,6 +15,7 @@
 - Cleaned up function JSON download handling so rate limiting and usage counting happen once per successful request.
 - Updated `run.sh` to create and reuse a local `.venv`, reinstalling dependencies only when `requirements.txt` changes.
 - Updated `run.sh` to generate and reuse a private local usage salt when `PEPPCDB_USAGE_SALT` is not provided.
+- Updated frontend API URL handling so deployments under a path prefix such as `/peppcdb/` can load data correctly.
 
 ## v0.1.3 - 2026-05-27
 
