@@ -33,44 +33,15 @@
       <p class="subtitle">Portal-level notes for browsing, structure display, and interface annotation semantics.</p>
     </section>
 
-    <section class="detail" id="download-api">
-      <h2>Quick Download API</h2>
-      <p class="muted">The public API surface is limited to quick download endpoints. Browser search and detail endpoints are internal page APIs.</p>
-      <div class="table-wrap">
-        <table class="dense-table">
-          <thead>
-            <tr>
-              <th>Endpoint</th>
-              <th>Output</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>GET /api/download/{entry_key}.zip</code></td>
-              <td>All source files for one entry.</td>
-            </tr>
-            <tr>
-              <td><code>GET /api/download/{entry_key}/{filename}</code></td>
-              <td>One file from an entry, such as mmCIF.</td>
-            </tr>
-            <tr>
-              <td><code>GET /api/download/{entry_key}/function.json</code></td>
-              <td>Merged peptide function, affinity, and linked target-card annotations.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="muted">Download API requests are limited to 100 requests per client IP per hour.</p>
-    </section>
-
     <section class="detail">
       <h2>Features</h2>
       <ul class="flat-list">
-        <li>Prebuilt SQLite index from `filtered_peppi` dataset.</li>
-        <li>Search and browse by PDB ID, chain ID, sequence fragment, and method.</li>
-        <li>Annotation view with peptide sequence, non-standard modification, cyclic type, nonpoly, and connect.</li>
-        <li>Interface view with pair classification (`PepPI` / `PPI` / `other`) and sequence-embedded markers.</li>
-        <li>3D view via embedded Mol* iframe and downloadable CIF.</li>
+        <li>Prebuilt SQLite index for the PDB-derived `filtered_peppi` peptide-protein complex dataset.</li>
+        <li>Search and filter entries by PDB ID, cluster ID, peptide chain, sequence fragment, non-standard residues, cyclic status, and affinity availability.</li>
+        <li>Function Annotation & Affinity view linking peptide ligands to protein target cards, functional roles, curated notes, and normalized affinity values.</li>
+        <li>Peptide annotation view covering sequence, chain length, non-standard modifications, cyclic topology, nonpoly components, and covalent/connect records.</li>
+        <li>Interface view with pair classification (`PepPI` / `PPI` / `other`), contact masks, secondary-structure coloring, and sequence-embedded markers.</li>
+        <li>3D structure view with RCSB preview, Mol* launch, mmCIF download, entry ZIP download, and generated function JSON download.</li>
       </ul>
     </section>
 
@@ -117,6 +88,55 @@
       </div>
     </section>
 
+    <section class="detail" id="download-api">
+      <h2>Quick Download API</h2>
+      <p class="muted">The public API surface is limited to quick download endpoints. Browser search and detail endpoints are internal page APIs.</p>
+      <div class="table-wrap">
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Output</th>
+              <th>File Naming</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET /api/download/{entry_key}.zip</code></td>
+              <td>All source files for one entry.</td>
+              <td><code>{pdb_id}.zip</code></td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/{pdb_id}.cif</code></td>
+              <td>mmCIF coordinate file for one entry.</td>
+              <td><code>{pdb_id}.cif</code></td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/{pdb_id}_annotations.json</code></td>
+              <td>Peptide chain annotations, including non-standard residue and cyclic metadata.</td>
+              <td><code>{pdb_id}_annotations.json</code></td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/{pdb_id}_interface.jsonl</code></td>
+              <td>Pair-level interface records for one entry.</td>
+              <td><code>{pdb_id}_interface.jsonl</code></td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/{pdb_id}_function.json</code></td>
+              <td>Generated 2-space JSON merging peptide function annotations, affinity values, target tags, and linked target-card records.</td>
+              <td><code>{pdb_id}_function.json</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Download API requests are limited to 100 requests per client IP per hour.</p>
+    </section>
+
+    <section class="detail" id="todo">
+      <h2>Roadmap / TODO</h2>
+      <div class="todo-list" id="roadmapTodo"></div>
+    </section>
+
     <section class="detail" id="dev-log">
       <h2>Development Log</h2>
       <table class="dense-table">
@@ -129,11 +149,6 @@
         </thead>
         <tbody id="devLogBody"></tbody>
       </table>
-    </section>
-
-    <section class="detail" id="todo">
-      <h2>Roadmap / TODO</h2>
-      <div class="todo-list" id="roadmapTodo"></div>
     </section>
   </main>
   <footer class="site-footer">

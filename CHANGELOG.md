@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.3 - 2026-05-27
+
+### Added
+
+- Added generated function JSON to entry ZIP downloads.
+- Added public download aliases using PDB-prefixed names for annotation, interface, and function files.
+- Added a 2026-05-27 deployment update to the About page development log.
+
+### Changed
+
+- Updated runtime/document version to `v0.1.3`.
+- Improved About page feature descriptions and moved Quick Download API after Legend Details.
+- Reordered Roadmap / TODO before Development Log.
+- Formatted displayed affinity values with thousands separators while preserving raw downloaded JSON values.
+- Aligned Home hero and search panel widths and refined the search/filter row layout.
+
 ## v0.1.2 - 2026-05-27
 
 ### Changed

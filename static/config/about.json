@@ -1,6 +1,11 @@
 {
   "development_log": [
     {
+      "date": "2026-05-27",
+      "update": "PepPCDB display was optimized and the deployment project was updated on GitHub",
+      "note": "Refined Home layout, download naming, and function/affinity downloads; pushed the current deployment code to GitHub and deployed it on the server."
+    },
+    {
       "date": "2026-05-25",
       "update": "Manually curated structure-affinity data for peptide-protein complexes were integrated into PepPCDB",
       "note": "Added curated affinity records to support activity-aware peptide-protein complex annotation."

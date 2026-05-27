@@ -72,6 +72,33 @@ function esc(s) {
     .replaceAll("'", "&#39;");
 }
 
+function formatAffinityText(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  return raw.replace(
+    /(^|[\s(=<>~])([+-]?\d{4,})(\.\d+)?(?=\s*nM\b)/g,
+    (match, prefix, intPart, decimalPart = "") => {
+      const formatted = Number(intPart).toLocaleString();
+      return `${prefix}${formatted}${decimalPart}`;
+    }
+  );
+}
+
+function publicDownloadName(pdbId, fileName) {
+  const raw = String(fileName || "").trim();
+  const prefix = String(pdbId || "").trim().toLowerCase();
+  if (!raw || !prefix) return raw;
+  const lower = raw.toLowerCase();
+  if (lower === "annotations.json") return `${prefix}_annotations.json`;
+  if (lower === "interface.jsonl") return `${prefix}_interface.jsonl`;
+  if (lower === "function.json") return `${prefix}_function.json`;
+  return raw;
+}
+
+function publicDownloadPath(pdbId, fileName) {
+  return publicDownloadName(pdbId, fileName);
+}
+
 function getUrlEntryKey() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -323,7 +350,7 @@ function renderFunctionBlocks(base) {
           <div><span class="kv">Length:</span> ${b.ligand_length ?? "-"} | <span class="kv">Source:</span> ${esc(b.source || "-")}</div>
           <div><span class="kv">Function:</span> ${renderSemicolonBullets(b.function_text)}</div>
           <div><span class="kv">Notes:</span> ${renderSemicolonBullets(b.notes)}</div>
-          <div><span class="kv">Affinity:</span> ${esc((b.affinity_text || "").trim() || "-")}</div>
+          <div><span class="kv">Affinity:</span> ${esc(formatAffinityText(b.affinity_text) || "-")}</div>
           <div><span class="kv">Status:</span> ${esc(b.status || "-")} | <span class="kv">Updated:</span> ${esc(b.updated_at || "-")}</div>
           ${targetsHtml}
         </div>
@@ -356,13 +383,17 @@ function renderOverview() {
 
   const filesRows = (base.files || [])
     .map(
-      (f) =>
-        `<tr><td><a class="dl-link" href="${API_BASE}/api/download/${esc(base.entry_key)}/${encodeURIComponent(f.file_name)}">${esc(
-          f.file_name
-        )}</a></td><td>${esc(f.file_type)}</td><td>${fmtSize(f.size_bytes)}</td></tr>`
+      (f) => {
+        const displayName = publicDownloadName(base.pdb_id || base.entry_key, f.file_name);
+        const downloadPath = publicDownloadPath(base.pdb_id || base.entry_key, f.file_name);
+        return `<tr><td><a class="dl-link" href="${API_BASE}/api/download/${esc(base.entry_key)}/${encodeURIComponent(downloadPath)}">${esc(
+          displayName
+        )}</a></td><td>${esc(f.file_type)}</td><td>${fmtSize(f.size_bytes)}</td></tr>`;
+      }
     )
     .join("");
-  const functionDownloadRow = `<tr><td><a class="dl-link" href="${API_BASE}/api/download/${esc(base.entry_key)}/function.json">function.json</a></td><td>function</td><td>generated</td></tr>`;
+  const functionDownloadName = publicDownloadName(base.pdb_id || base.entry_key, "function.json");
+  const functionDownloadRow = `<tr><td><a class="dl-link" href="${API_BASE}/api/download/${esc(base.entry_key)}/${encodeURIComponent(functionDownloadName)}">${esc(functionDownloadName)}</a></td><td>json</td><td>generated</td></tr>`;
   const members = base.cluster_members || [];
   const currentKey = String(base.entry_key || "");
   const memberItems = members

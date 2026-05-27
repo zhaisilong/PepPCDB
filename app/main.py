@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 
@@ -34,7 +34,7 @@ DB_PATH = env_path("PEPPCDB_DB", DEFAULT_DB)
 DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
 DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
 DOWNLOAD_RATE_WINDOW_SECONDS = 3600
 
@@ -262,6 +262,32 @@ def resolve_file(conn: sqlite3.Connection, entry_key: str, filename: str) -> tup
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return resolved, row["rel_path"]
+
+
+def public_download_name(pdb_id: str, filename: str) -> str:
+    raw = str(filename or "").strip()
+    prefix = str(pdb_id or "").strip().lower()
+    if not raw or not prefix:
+        return raw
+    lower = raw.lower()
+    if lower == "annotations.json":
+        return f"{prefix}_annotations.json"
+    if lower == "interface.jsonl":
+        return f"{prefix}_interface.jsonl"
+    if lower == "function.json":
+        return f"{prefix}_function.json"
+    return raw
+
+
+def source_file_name_from_public(pdb_id: str, filename: str) -> str:
+    raw = str(filename or "").strip()
+    prefix = str(pdb_id or "").strip().lower()
+    lower = raw.lower()
+    if prefix and lower == f"{prefix}_annotations.json":
+        return "annotations.json"
+    if prefix and lower == f"{prefix}_interface.jsonl":
+        return "interface.jsonl"
+    return raw
 
 
 def client_key(request: Request) -> str:
@@ -668,7 +694,10 @@ def download_zip(entry_key: str, request: Request) -> StreamingResponse:
         for file_row in file_rows:
             src = (DATASET_ROOT / file_row["rel_path"]).resolve()
             if src.is_file() and (src == root or root in src.parents):
-                zf.write(src, arcname=file_row["file_name"])
+                zf.write(src, arcname=public_download_name(file_row["pdb_id"], file_row["file_name"]))
+        pdb_id = file_rows[0]["pdb_id"]
+        function_data = json.dumps(function_payload(str(pdb_id).lower()), ensure_ascii=False, indent=2) + "\n"
+        zf.writestr(f"{str(pdb_id).lower()}_function.json", function_data)
     buffer.seek(0)
     pdb_id = file_rows[0]["pdb_id"]
     return StreamingResponse(
@@ -678,24 +707,39 @@ def download_zip(entry_key: str, request: Request) -> StreamingResponse:
     )
 
 
-@app.get("/api/download/{entry_key}/function.json")
-def download_function_json(entry_key: str, request: Request) -> JSONResponse:
+def function_json_response(entry_key: str, request: Request) -> Response:
     check_download_rate_limit(request)
     payload = function_payload(entry_key)
     public_key = str(payload.get("pdb_id") or entry_key).lower()
-    return JSONResponse(
-        payload,
+    return Response(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{public_key}_function.json"'},
     )
 
 
+@app.get("/api/download/{entry_key}/function.json")
+def download_function_json(entry_key: str, request: Request) -> Response:
+    return function_json_response(entry_key, request)
+
+
 @app.get("/api/download/{entry_key}/{filename}")
-def download_file(entry_key: str, filename: str, request: Request) -> FileResponse:
+def download_file(entry_key: str, filename: str, request: Request) -> Response:
     check_download_rate_limit(request)
     with connect() as conn:
-        path, _ = resolve_file(conn, entry_key, filename)
-    media_type = "chemical/x-cif" if filename.lower().endswith(".cif") else "application/octet-stream"
-    return FileResponse(path, media_type=media_type, filename=filename)
+        entry = get_entry_min(conn, entry_key)
+        if not entry:
+            raise HTTPException(status_code=404, detail="Entry not found")
+        if filename.lower() == f"{str(entry['pdb_id']).lower()}_function.json":
+            _download_rate_state[client_key(request)] = (
+                _download_rate_state[client_key(request)][0],
+                _download_rate_state[client_key(request)][1] - 1,
+            )
+            return function_json_response(entry_key, request)
+        source_name = source_file_name_from_public(entry["pdb_id"], filename)
+        path, _ = resolve_file(conn, entry_key, source_name)
+    media_type = "chemical/x-cif" if source_name.lower().endswith(".cif") else "application/octet-stream"
+    return FileResponse(path, media_type=media_type, filename=public_download_name(entry["pdb_id"], source_name))
 
 
 if STATIC_DIR.exists():
