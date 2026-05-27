@@ -2,7 +2,7 @@
 
 Document version: `v0.1.0`
 
-This directory is the new local deployment project for PepPCDB. It is intended to contain the deployable application code, static frontend assets, release scripts, and documentation for the peptide-protein complex database portal.
+This directory is the new local deployment project for PepPCDB. It contains a FastAPI backend, same-origin static frontend assets, release scripts, and documentation for the peptide-protein complex database portal.
 
 ## Versioning
 
@@ -10,18 +10,43 @@ Version history starts at `v0.1.0` in the documentation. This local repository d
 
 ## Git Policy
 
-This repository tracks code, scripts, and documentation only. Large or generated data assets are intentionally excluded from git:
+This repository tracks code, scripts, static frontend files, and documentation only. Large or generated data assets are intentionally excluded from git:
 
 - `data/filtered_peppi/`
+- `data/records/`
 - SQLite database snapshots
 - SQLite WAL/SHM files
 - caches, logs, and temporary files
 
 The deployable data should be synchronized or rebuilt as part of the release preparation workflow rather than committed.
 
+## Run
+
+Install dependencies in your preferred Python environment:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the deployment app:
+
+```bash
+./run.sh
+```
+
+Defaults:
+
+- URL: `http://127.0.0.1:8000`
+- Database: `data/peppcdb.sqlite3`
+- Structure dataset: `data/filtered_peppi`
+- Target cards: `data/records/target_cards.jsonl`
+- Pep annotations: `data/records/pep_annotations_patched.jsonl`
+
+The app serves both the API and frontend from the same port.
+
 ## Data Sources
 
-The current deployment source of truth remains outside this new project until the migration is implemented:
+The current upstream source of truth remains outside this deployment project:
 
 - Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi`
 - Target cards: `/home/silong/codex/peptarget/function_mannual/records/target_cards.jsonl`
@@ -34,12 +59,43 @@ The patched pep annotation file should be treated as the preferred deployment an
 
 When the upstream structural dataset is updated, prepare this deployment project with the following workflow:
 
-1. Synchronize the updated `filtered_peppi` dataset into `data/filtered_peppi/`.
-2. Copy the latest target card JSONL into `data/records/target_cards.jsonl`.
-3. Copy `pep_annotations_patched.jsonl` into `data/records/pep_annotations_patched.jsonl`.
-4. Copy `pep_annotations_patched.report.json` into `data/records/pep_annotations_patched.report.json`.
-5. Rebuild the deployment SQLite database from the synchronized dataset and patched annotations.
-6. Run API and page smoke checks before publishing.
-7. Record the dataset and annotation refresh in `CHANGELOG.md`.
+1. Synchronize the updated `filtered_peppi` dataset and JSONL records:
+
+```bash
+./scripts/sync_release_data.sh
+```
+
+2. Rebuild the deployment SQLite database from the synchronized dataset and patched annotations:
+
+```bash
+python3 scripts/build_db.py
+```
+
+3. Run release checks:
+
+```bash
+python3 scripts/release_check.py
+```
+
+4. Start the app and run page/API smoke checks before publishing:
+
+```bash
+./run.sh
+```
+
+5. Record the dataset and annotation refresh in `CHANGELOG.md`.
 
 Use `rsync --delete` for structure data refreshes so the deployment copy exactly matches the current source dataset.
+
+## Implemented API Surface
+
+- `GET /api/health`
+- `GET /api/stats`
+- `GET /api/entries`
+- `GET /api/entries/{entry_key}`
+- `GET /api/entries/{entry_key}/annotations`
+- `GET /api/entries/{entry_key}/interfaces`
+- `GET /api/entries/{entry_key}/interfaces/{pair_id}`
+- `GET /api/entries/{entry_key}/structure`
+- `GET /api/download/{entry_key}.zip`
+- `GET /api/download/{entry_key}/{filename}`

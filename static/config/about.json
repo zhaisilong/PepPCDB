@@ -1,0 +1,53 @@
+{
+  "development_log": [
+    {
+      "date": "2026-05-25",
+      "update": "Manually curated structure-affinity data for peptide-protein complexes were integrated into PepPCDB",
+      "note": "Added curated affinity records to support activity-aware peptide-protein complex annotation."
+    },
+    {
+      "date": "2026-05-20",
+      "update": "Agent-assisted audit was applied to existing function annotations",
+      "note": "Reviewed existing annotations for consistency and quality."
+    },
+    {
+      "date": "2026-04-01",
+      "update": "Agent-assisted function annotation was added to the human-in-the-loop workflow",
+      "note": "Introduced agent-generated function suggestions for curator review."
+    },
+    {
+      "date": "2026-03-10",
+      "update": "Human-in-the-loop function annotation was implemented",
+      "note": "The Target-Pep function annotation schema was updated."
+    },
+    {
+      "date": "2026-03-07",
+      "update": "Browser-based function annotation tool was deployed",
+      "note": "A web-based interface for human-in-the-loop function annotation became available."
+    },
+    {
+      "date": "2026-03-06",
+      "update": "About page was separated",
+      "note": "Detailed legends and feature notes were moved into a standalone documentation page."
+    },
+    {
+      "date": "2026-03-06",
+      "update": "Annotation and interface rendering were upgraded",
+      "note": "Cyclic, non-standard, connected, and non-polymer views were added, along with sequence-embedded interface markers."
+    },
+    {
+      "date": "2026-03-06",
+      "update": "PepPCDB web portal was initialized",
+      "note": "A prebuilt SQLite backend was introduced, with baseline search, browse, and download functions made available online."
+    },
+    {
+      "date": "2026-02-20",
+      "update": "PepPCDB database was initialized",
+      "note": "PepPCDB was derived from the Protein Data Bank."
+    }
+  ],
+  "roadmap_todo": [
+    "One-click generation of AFRun configuration files",
+    "Extension of affinity annotations to targets beyond structural peptide binders"
+  ]
+}

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About - PepPCDB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">PepPCDB</a>
+    <nav>
+      <a href="./index.html">Home</a>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="./about.html">About</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <p class="eyebrow">About PepPCDB</p>
+      <h1>Features And Sequence Annotation Rules</h1>
+      <p class="subtitle">Portal-level notes for browsing, structure display, and interface annotation semantics.</p>
+    </section>
+
+    <section class="detail">
+      <h2>Features</h2>
+      <ul class="flat-list">
+        <li>Prebuilt SQLite index from `filtered_peppi` dataset.</li>
+        <li>Search and browse by PDB ID, chain ID, sequence fragment, and method.</li>
+        <li>Annotation view with peptide sequence, non-standard modification, cyclic type, nonpoly, and connect.</li>
+        <li>Interface view with pair classification (`PepPI` / `PPI` / `other`) and sequence-embedded markers.</li>
+        <li>3D view via embedded Mol* iframe and downloadable CIF.</li>
+      </ul>
+    </section>
+
+    <section class="detail" id="legend-details">
+      <h2>Legend Details</h2>
+      <p class="muted">In Interface view, markers are embedded directly on residue characters.</p>
+      <div class="table-wrap">
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Marker</th>
+              <th>Meaning</th>
+              <th>Render Rule</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="aa contact">A</span></td>
+              <td>MASK contact residue</td>
+              <td>Character boxed if mask position is `-`.</td>
+            </tr>
+            <tr>
+              <td><span class="aa ss-h">A</span></td>
+              <td>SS = H (Helix)</td>
+              <td>Text color by secondary structure class.</td>
+            </tr>
+            <tr>
+              <td><span class="aa ss-e">A</span></td>
+              <td>SS = E (Beta)</td>
+              <td>Text color by secondary structure class.</td>
+            </tr>
+            <tr>
+              <td><span class="aa ss-c">A</span></td>
+              <td>SS = C (Coil)</td>
+              <td>Text color by secondary structure class.</td>
+            </tr>
+            <tr>
+              <td><span class="aa mod-aa" data-tip="NONSTD MOD: M3L @ 6">A</span></td>
+              <td>NONSTD MOD</td>
+              <td>Dotted underline and hover tooltip with mod type + position.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="detail" id="dev-log">
+      <h2>Development Log</h2>
+      <table class="dense-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Update</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="devLogBody"></tbody>
+      </table>
+    </section>
+
+    <section class="detail" id="todo">
+      <h2>Roadmap / TODO</h2>
+      <div class="todo-list" id="roadmapTodo"></div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p class="footer-main">Copyright © <span id="copyrightYear"></span> PepPCDB. All rights reserved.</p>
+      <p class="footer-sub">
+        PepPCDB interface design, data organization, and web assets are protected by applicable copyright laws.
+        External source data (e.g., RCSB PDB) remains the property of their respective providers.
+      </p>
+    </div>
+  </footer>
+  <script>
+    function esc(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    const fallbackDevLog = [
+      { date: "fallback test", update: "fallback test", note: "fallback test" }
+    ];
+    const fallbackTodo = [
+      "fallback test"
+    ];
+
+    function renderAboutConfig(config) {
+      const devLog = Array.isArray(config?.development_log) ? config.development_log : fallbackDevLog;
+      const todo = Array.isArray(config?.roadmap_todo) ? config.roadmap_todo : fallbackTodo;
+
+      const devLogBody = document.getElementById("devLogBody");
+      const roadmapTodo = document.getElementById("roadmapTodo");
+      if (devLogBody) {
+        devLogBody.innerHTML = devLog
+          .map((x) => `<tr><td>${esc(x.date || "-")}</td><td>${esc(x.update || "-")}</td><td>${esc(x.note || "-")}</td></tr>`)
+          .join("") || '<tr><td colspan="3">-</td></tr>';
+      }
+      if (roadmapTodo) {
+        roadmapTodo.innerHTML = todo
+          .map((x, i) => `<p><strong>${String.fromCharCode(97 + i)}.</strong> ${esc(x)}</p>`)
+          .join("") || "<p>-</p>";
+      }
+    }
+
+    fetch("./config/about.json")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("config load failed"))))
+      .then((data) => renderAboutConfig(data))
+      .catch(() => renderAboutConfig({}));
+
+    document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
+  </script>
+</body>
+
+</html>
