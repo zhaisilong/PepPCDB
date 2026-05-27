@@ -16,6 +16,8 @@
 - Updated `run.sh` to create and reuse a local `.venv`, reinstalling dependencies only when `requirements.txt` changes.
 - Updated `run.sh` to generate and reuse a private local usage salt when `PEPPCDB_USAGE_SALT` is not provided.
 - Updated frontend API URL handling so deployments under a path prefix such as `/peppcdb/` can load data correctly.
+- Updated default local port and documentation examples to `13008`.
+- Updated API documentation to show hosted `/peppcdb/api/...` URLs while keeping FastAPI internal routes at `/api/...`.
 
 ## v0.1.3 - 2026-05-27
 

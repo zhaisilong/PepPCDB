@@ -90,7 +90,7 @@
 
     <section class="detail" id="download-api">
       <h2>Quick Download API</h2>
-      <p class="muted">The public API surface is limited to quick download endpoints. Browser search and detail endpoints are internal page APIs.</p>
+      <p class="muted">The public API surface is limited to quick download endpoints. Browser search and detail endpoints are internal page APIs. The hosted site uses the <code>/peppcdb</code> prefix; root-path deployments use the same endpoints without that prefix.</p>
       <div class="table-wrap">
         <table class="dense-table">
           <thead>
@@ -102,28 +102,33 @@
           </thead>
           <tbody>
             <tr>
-              <td><code>GET /api/download/{entry_key}.zip</code></td>
+              <td><code>GET /peppcdb/api/download/{entry_key}.zip</code></td>
               <td>All source files for one entry.</td>
               <td><code>{pdb_id}.zip</code></td>
             </tr>
             <tr>
-              <td><code>GET /api/download/{entry_key}/{pdb_id}.cif</code></td>
+              <td><code>GET /peppcdb/api/download/{entry_key}/{pdb_id}.cif</code></td>
               <td>mmCIF coordinate file for one entry.</td>
               <td><code>{pdb_id}.cif</code></td>
             </tr>
             <tr>
-              <td><code>GET /api/download/{entry_key}/{pdb_id}_annotations.json</code></td>
+              <td><code>GET /peppcdb/api/download/{entry_key}/{pdb_id}_annotations.json</code></td>
               <td>Peptide chain annotations, including non-standard residue and cyclic metadata.</td>
               <td><code>{pdb_id}_annotations.json</code></td>
             </tr>
             <tr>
-              <td><code>GET /api/download/{entry_key}/{pdb_id}_interface.jsonl</code></td>
+              <td><code>GET /peppcdb/api/download/{entry_key}/{pdb_id}_interface.jsonl</code></td>
               <td>Pair-level interface records for one entry.</td>
               <td><code>{pdb_id}_interface.jsonl</code></td>
             </tr>
             <tr>
-              <td><code>GET /api/download/{entry_key}/{pdb_id}_function.json</code></td>
+              <td><code>GET /peppcdb/api/download/{entry_key}/{pdb_id}_function.json</code></td>
               <td>Generated 2-space JSON merging peptide function annotations, affinity values, target tags, and linked target-card records.</td>
+              <td><code>{pdb_id}_function.json</code></td>
+            </tr>
+            <tr>
+              <td><code>GET /peppcdb/api/download/{entry_key}/function.json</code></td>
+              <td>Compatibility alias for generated function JSON.</td>
               <td><code>{pdb_id}_function.json</code></td>
             </tr>
           </tbody>

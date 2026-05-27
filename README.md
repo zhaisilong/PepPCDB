@@ -12,19 +12,64 @@ Start the app from this directory:
 ./run.sh
 ```
 
-`run.sh` creates a repo-local `.venv` on first run, installs `requirements.txt`, runs a fast release check, and starts the FastAPI app at `http://127.0.0.1:8000`. Later runs reuse `.venv`; dependencies are reinstalled only when `requirements.txt` changes.
+`run.sh` creates a repo-local `.venv` on first run, installs `requirements.txt`, runs a fast release check, and starts the FastAPI app at `http://127.0.0.1:13008`. Later runs reuse `.venv`; dependencies are reinstalled only when `requirements.txt` changes.
 
 Useful runtime overrides:
 
 ```bash
-HOST=0.0.0.0 PORT=8000 ./run.sh
+HOST=0.0.0.0 PORT=13008 ./run.sh
 PYTHON=/path/to/python3 ./run.sh
 PEPPCDB_VENV=/path/to/venv ./run.sh
 ```
 
 To rebuild the Python environment, remove `.venv` and rerun `./run.sh`.
 
-When publishing behind a path prefix such as `/peppcdb/`, configure the reverse proxy to strip the prefix before forwarding to the app. The frontend derives API URLs from its deployed script path, so both `/` and `/peppcdb/` deployments are supported.
+## Path-Prefix Deployment Notes
+
+PepPCDB can be served from the domain root (`/`) or from a path prefix such as `/peppcdb/`. The current hosted base URL is:
+
+```text
+https://cadd.zju.edu.cn/peppcdb
+```
+
+The FastAPI app keeps its internal routes at `/api/...`; do not rename backend routes to `/peppcdb/api/...`. When the frontend is loaded from `/peppcdb/app.js`, it derives `/peppcdb` as the public API prefix and requests URLs such as:
+
+```text
+/peppcdb/api/stats
+/peppcdb/api/entries
+```
+
+The reverse proxy should then forward those requests to the app so the backend receives:
+
+```text
+/api/stats
+/api/entries
+```
+
+Use `/peppcdb/` with the trailing slash for browser access. A bare `/peppcdb` request should be redirected to `/peppcdb/` by the proxy layer.
+
+Deployment sync checks:
+
+```bash
+git log -1 --oneline
+```
+
+To verify the served frontend, open `/peppcdb/app.js` in the browser and confirm it starts with the dynamic `API_BASE` logic. If the browser still uses an old script, clear cache or bump the query string on the `app.js` script tag.
+
+## Troubleshooting
+
+If `/peppcdb` returns 404, the prefixed request is reaching the app without being mapped to `/`. Use `/peppcdb/` and check the proxy prefix handling.
+
+If the page opens but no database rows load, inspect the browser Network tab. A prefixed deployment should request `/peppcdb/api/stats` and `/peppcdb/api/entries`.
+
+If the backend log only shows requests for `/`, `/styles.css`, and `/app.js`, the API requests are not reaching PepPCDB. Common causes are stale browser JavaScript or proxy handling that does not cover prefixed API requests.
+
+When routing is correct, the backend log should show internal API paths such as:
+
+```text
+GET /api/stats
+GET /api/entries
+```
 
 ## Data Assets
 
@@ -72,16 +117,16 @@ When the upstream dataset or annotation records change, refresh the deployment c
 
 ## Public Quick Download API
 
-The stable public API surface is limited to quick download endpoints. Browser search/detail APIs are used by the frontend and should be treated as internal.
+The stable public API surface is limited to quick download endpoints. Browser search/detail APIs are used by the frontend and should be treated as internal. The hosted site uses the `/peppcdb` prefix; a root-path deployment uses the same paths without that prefix.
 
 | Endpoint | Output |
 | --- | --- |
-| `GET /api/download/{entry_key}.zip` | Entry ZIP with source files plus generated function JSON |
-| `GET /api/download/{entry_key}/{pdb_id}.cif` | mmCIF coordinate file |
-| `GET /api/download/{entry_key}/{pdb_id}_annotations.json` | Peptide chain annotations |
-| `GET /api/download/{entry_key}/{pdb_id}_interface.jsonl` | Pair-level interface records |
-| `GET /api/download/{entry_key}/{pdb_id}_function.json` | Generated function, affinity, and target-card JSON |
-| `GET /api/download/{entry_key}/function.json` | Compatibility alias for generated function JSON |
+| `GET /peppcdb/api/download/{entry_key}.zip` | Entry ZIP with source files plus generated function JSON |
+| `GET /peppcdb/api/download/{entry_key}/{pdb_id}.cif` | mmCIF coordinate file |
+| `GET /peppcdb/api/download/{entry_key}/{pdb_id}_annotations.json` | Peptide chain annotations |
+| `GET /peppcdb/api/download/{entry_key}/{pdb_id}_interface.jsonl` | Pair-level interface records |
+| `GET /peppcdb/api/download/{entry_key}/{pdb_id}_function.json` | Generated function, affinity, and target-card JSON |
+| `GET /peppcdb/api/download/{entry_key}/function.json` | Compatibility alias for generated function JSON |
 
 Public download API requests are limited to 100 requests per client IP per hour by default. Override with `PEPPCDB_DOWNLOAD_RATE_LIMIT` when needed.
 
@@ -92,7 +137,7 @@ PepPCDB records lightweight aggregate usage statistics in `data/usage_stats.sqli
 Raw IP addresses are not stored. If `PEPPCDB_USAGE_SALT` is not set, `run.sh` creates a private local salt at `data/usage_salt` and exports it before starting the app. Keep this file stable across restarts to preserve daily unique counting continuity, and do not commit it. The About page displays aggregate visit/download totals from:
 
 ```text
-GET /api/usage-stats
+GET /peppcdb/api/usage-stats
 ```
 
 ## Versioning

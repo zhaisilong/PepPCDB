@@ -1,7 +1,8 @@
 const API_BASE = (() => {
-  const scriptPath = new URL(import.meta.url).pathname;
-  const basePath = scriptPath.replace(/\/app\.js$/, "");
-  return basePath === "/" ? "" : basePath;
+  const path = window.location.pathname;
+  if (path.endsWith("/index.html")) return path.slice(0, -"/index.html".length);
+  if (path.endsWith("/")) return path.slice(0, -1);
+  return "";
 })();
 
 const state = {
