@@ -13,6 +13,7 @@
 
 - Updated runtime/document version to `v0.1.4`.
 - Cleaned up function JSON download handling so rate limiting and usage counting happen once per successful request.
+- Updated `run.sh` to create and reuse a local `.venv`, reinstalling dependencies only when `requirements.txt` changes.
 
 ## v0.1.3 - 2026-05-27
 

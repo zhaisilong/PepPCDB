@@ -23,17 +23,22 @@ The deployable data should be synchronized or rebuilt as part of the release pre
 
 ## Run
 
-Install dependencies in your preferred Python environment:
-
-```bash
-pip install -r requirements.txt
-```
-
 Start the deployment app:
 
 ```bash
 ./run.sh
 ```
+
+`run.sh` creates a repo-local `.venv` on first run, installs `requirements.txt`, and reuses the same environment on later runs. Dependencies are reinstalled only when `requirements.txt` changes.
+
+Optional runtime overrides:
+
+```bash
+PYTHON=/path/to/python3 ./run.sh
+PEPPCDB_VENV=/path/to/venv ./run.sh
+```
+
+To rebuild the environment, remove `.venv` and rerun `./run.sh`.
 
 Defaults:
 
