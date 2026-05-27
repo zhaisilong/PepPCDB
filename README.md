@@ -1,12 +1,12 @@
 # PepPCDB Deployment Project
 
-Document version: `v0.1.0`
+Document version: `v0.1.1`
 
 This directory is the new local deployment project for PepPCDB. It contains a FastAPI backend, same-origin static frontend assets, release scripts, and documentation for the peptide-protein complex database portal.
 
 ## Versioning
 
-Version history starts at `v0.1.0` in the documentation. This local repository does not use git tags for the initial version unless that policy changes later.
+Version history starts at `v0.1.0` in the documentation. The current document/runtime version is `v0.1.1`. This local repository does not use git tags unless that policy changes later.
 
 ## Git Policy
 
@@ -87,15 +87,10 @@ python3 scripts/release_check.py
 
 Use `rsync --delete` for structure data refreshes so the deployment copy exactly matches the current source dataset.
 
-## Implemented API Surface
+## Public Quick Download API
 
-- `GET /api/health`
-- `GET /api/stats`
-- `GET /api/entries`
-- `GET /api/entries/{entry_key}`
-- `GET /api/entries/{entry_key}/annotations`
-- `GET /api/entries/{entry_key}/interfaces`
-- `GET /api/entries/{entry_key}/interfaces/{pair_id}`
-- `GET /api/entries/{entry_key}/structure`
 - `GET /api/download/{entry_key}.zip`
 - `GET /api/download/{entry_key}/{filename}`
+- `GET /api/download/{entry_key}/function.json`
+
+The browser uses additional internal `/api/*` endpoints for search and entry rendering. The stable public API surface is limited to the quick download endpoints above. Public download API requests are limited to 100 requests per client IP per hour.

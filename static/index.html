@@ -20,7 +20,7 @@
       <a class="brand" href="./index.html">PepPCDB</a>
       <nav>
         <a href="./index.html">Home</a>
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="./about.html">About</a>
       </nav>
     </header>
@@ -47,8 +47,13 @@
           <input id="dateToFilter" type="date" />
           <select id="nonstdFilter">
             <option value="">All Entries</option>
-            <option value="1">Has Non-Standard Peptide</option>
-            <option value="0">Standard Peptide Only</option>
+            <option value="1">Has Nonstd</option>
+            <option value="0">Standard Only</option>
+          </select>
+          <select id="affinityFilter">
+            <option value="">All Affinity</option>
+            <option value="1">With Affinity</option>
+            <option value="0">Without Affinity</option>
           </select>
           <select id="cyclicFilter">
             <option value="">All Cyclic Types</option>
@@ -69,7 +74,8 @@
                 <th><button class="sort-btn" data-sort="res">Res(Å)</button></th>
                 <th><button class="sort-btn" data-sort="chains">Chains</button></th>
                 <th><button class="sort-btn" data-sort="peptides">Peptides</button></th>
-                <th><button class="sort-btn" data-sort="nonstd_chains">Nonstd Chains</button></th>
+                <th><button class="sort-btn" data-sort="nonstd_chains">Nonstd</button></th>
+                <th>Affinity</th>
                 <th><button class="sort-btn" data-sort="clusters">Clusters</button></th>
                 <th>Cyclic</th>
                 <th>Cyclic Types</th>

@@ -4,14 +4,14 @@ import io
 import json
 import os
 import sqlite3
-import tempfile
+import time
 import urllib.parse
 import zipfile
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -34,9 +34,22 @@ DB_PATH = env_path("PEPPCDB_DB", DEFAULT_DB)
 DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
+APP_VERSION = "0.1.1"
+DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
+DOWNLOAD_RATE_WINDOW_SECONDS = 3600
 
 
-app = FastAPI(title="PepPCDB", version="0.1.0")
+app = FastAPI(title="PepPCDB", version=APP_VERSION)
+_download_rate_state: dict[str, tuple[float, int]] = {}
+
+
+class RateLimitExceeded(Exception):
+    pass
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
 
 
 @app.on_event("startup")
@@ -195,7 +208,22 @@ def manual_state() -> dict[str, Any]:
             "has_affinity": obj.get("has_affinity"),
         }
 
-    data = {"targets_by_id": targets, "peps_by_key": peps}
+    affinity_entries = {
+        str(rec.get("entry_key", "")).strip().lower()
+        for rec in peps.values()
+        if rec.get("has_affinity") is True and str(rec.get("affinity_text", "")).strip()
+    }
+    affinity_annotation_count = sum(
+        1
+        for rec in peps.values()
+        if rec.get("has_affinity") is True and str(rec.get("affinity_text", "")).strip()
+    )
+    data = {
+        "targets_by_id": targets,
+        "peps_by_key": peps,
+        "affinity_entries": affinity_entries,
+        "affinity_annotation_count": affinity_annotation_count,
+    }
     _manual_cache.clear()
     _manual_cache.update({"stamp": stamp, "data": data})
     return data
@@ -236,9 +264,38 @@ def resolve_file(conn: sqlite3.Connection, entry_key: str, filename: str) -> tup
     return resolved, row["rel_path"]
 
 
+def client_key(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    if forwarded_for:
+        return forwarded_for
+    return request.client.host if request.client else "unknown"
+
+
+def check_download_rate_limit(request: Request) -> None:
+    key = client_key(request)
+    now = time.time()
+    window_start, count = _download_rate_state.get(key, (now, 0))
+    if now - window_start >= DOWNLOAD_RATE_WINDOW_SECONDS:
+        window_start, count = now, 0
+    if count >= DOWNLOAD_RATE_LIMIT:
+        raise RateLimitExceeded()
+    _download_rate_state[key] = (window_start, count + 1)
+
+
+def function_payload(entry_key: str) -> dict[str, Any]:
+    detail = entry_detail(entry_key)
+    return {
+        "entry_key": detail.get("entry_key"),
+        "pdb_id": detail.get("pdb_id"),
+        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "peptide_functions": detail.get("peptide_functions", []),
+        "target_cards": detail.get("target_cards", []),
+    }
+
+
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    return {"ok": True, "version": "0.1.0"}
+    return {"ok": True, "version": APP_VERSION}
 
 
 @app.get("/api/stats")
@@ -257,6 +314,8 @@ def stats() -> dict[str, Any]:
             "clusters": conn.execute("SELECT COUNT(DISTINCT cluster_id) AS n FROM entry_clusters").fetchone()["n"],
             "db_update_date": db_update_date(conn),
         }
+    manual = manual_state()
+    payload["affinity_annotations"] = manual.get("affinity_annotation_count", 0)
     return payload
 
 
@@ -267,6 +326,7 @@ def entries(
     date_from: str = "",
     date_to: str = "",
     has_nonstd: str = "",
+    has_affinity: str = "",
     is_cyclic: str = "",
     sort_by: str = "date",
     sort_dir: str = "desc",
@@ -318,6 +378,12 @@ def entries(
     if is_cyclic in {"0", "1"}:
         where.append("e.is_cyclic = ?")
         params.append(int(is_cyclic))
+    affinity_entries = set(manual_state().get("affinity_entries") or set())
+    if has_affinity in {"0", "1"} and affinity_entries:
+        placeholders = ",".join("?" for _ in affinity_entries)
+        operator = "IN" if has_affinity == "1" else "NOT IN"
+        where.append(f"lower(e.pdb_id) {operator} ({placeholders})")
+        params.extend(sorted(affinity_entries))
 
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     sort_map = {
@@ -358,6 +424,7 @@ def entries(
     items = rows(result_rows)
     for item in items:
         item["entry_key"] = str(item.get("pdb_id") or "").lower()
+        item["has_affinity"] = item["entry_key"] in affinity_entries
         item["pdb_url"] = pdb_url(item.get("pdb_id"))
         item["cyclic_types"] = parse_json_list(item.pop("cyclic_types_json", "[]"))
     return {"page": page, "page_size": page_size, "total": total, "items": items, "facets": {"methods": rows(methods)}}
@@ -576,7 +643,8 @@ def entry_structure(entry_key: str) -> dict[str, Any]:
 
 
 @app.get("/api/download/{entry_key}.zip")
-def download_zip(entry_key: str) -> StreamingResponse:
+def download_zip(entry_key: str, request: Request) -> StreamingResponse:
+    check_download_rate_limit(request)
     with connect() as conn:
         entry = get_entry_min(conn, entry_key)
         if not entry:
@@ -610,8 +678,20 @@ def download_zip(entry_key: str) -> StreamingResponse:
     )
 
 
+@app.get("/api/download/{entry_key}/function.json")
+def download_function_json(entry_key: str, request: Request) -> JSONResponse:
+    check_download_rate_limit(request)
+    payload = function_payload(entry_key)
+    public_key = str(payload.get("pdb_id") or entry_key).lower()
+    return JSONResponse(
+        payload,
+        headers={"Content-Disposition": f'attachment; filename="{public_key}_function.json"'},
+    )
+
+
 @app.get("/api/download/{entry_key}/{filename}")
-def download_file(entry_key: str, filename: str) -> FileResponse:
+def download_file(entry_key: str, filename: str, request: Request) -> FileResponse:
+    check_download_rate_limit(request)
     with connect() as conn:
         path, _ = resolve_file(conn, entry_key, filename)
     media_type = "chemical/x-cif" if filename.lower().endswith(".cif") else "application/octet-stream"

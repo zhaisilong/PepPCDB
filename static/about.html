@@ -21,7 +21,7 @@
     <a class="brand" href="./index.html">PepPCDB</a>
     <nav>
       <a href="./index.html">Home</a>
-      <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
       <a href="./about.html">About</a>
     </nav>
   </header>
@@ -31,6 +31,36 @@
       <p class="eyebrow">About PepPCDB</p>
       <h1>Features And Sequence Annotation Rules</h1>
       <p class="subtitle">Portal-level notes for browsing, structure display, and interface annotation semantics.</p>
+    </section>
+
+    <section class="detail" id="download-api">
+      <h2>Quick Download API</h2>
+      <p class="muted">The public API surface is limited to quick download endpoints. Browser search and detail endpoints are internal page APIs.</p>
+      <div class="table-wrap">
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GET /api/download/{entry_key}.zip</code></td>
+              <td>All source files for one entry.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/{filename}</code></td>
+              <td>One file from an entry, such as mmCIF.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/download/{entry_key}/function.json</code></td>
+              <td>Merged peptide function, affinity, and linked target-card annotations.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Download API requests are limited to 100 requests per client IP per hour.</p>
     </section>
 
     <section class="detail">

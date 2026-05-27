@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.1.1 - 2026-05-27
+
+### Added
+
+- Added affinity-aware browsing with a table Affinity column and an All / With Affinity / Without Affinity filter.
+- Added `Affinity Annotations` to the Home stats summary.
+- Added `GET /api/download/{entry_key}/function.json` for merged peptide function, affinity, and linked target-card annotations.
+- Added lightweight rate limiting for public quick download API endpoints: 100 requests per client IP per hour.
+- Added public quick download API documentation to the About page.
+
+### Changed
+
+- Updated runtime/document version to `v0.1.1`.
+- Simplified the `pep nonstd` badge and non-standard filter labels to `nonstd` wording.
+- Renamed the overview function section to `Function Annotation & Affinity`.
+- Added target-card status and update time to function annotation display.
+- Updated the GitHub header link to `https://github.com/zhaisilong/PepPCDB`.
+- Scoped public API documentation to quick download endpoints only; browser search/detail APIs remain internal.
+
 ## v0.1.0 - 2026-05-27
 
 ### Added

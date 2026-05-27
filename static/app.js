@@ -8,6 +8,7 @@ const state = {
   date_from: "",
   date_to: "",
   has_nonstd: "",
+  has_affinity: "",
   is_cyclic: "",
   sortBy: "date",
   sortDir: "desc",
@@ -34,6 +35,7 @@ const dateFromFilterEl = document.getElementById("dateFromFilter");
 const dateToFilterEl = document.getElementById("dateToFilter");
 const searchInputEl = document.getElementById("searchInput");
 const nonstdFilterEl = document.getElementById("nonstdFilter");
+const affinityFilterEl = document.getElementById("affinityFilter");
 const cyclicFilterEl = document.getElementById("cyclicFilter");
 const gotoPageInputEl = document.getElementById("gotoPageInput");
 const popoverEl = document.createElement("div");
@@ -131,6 +133,7 @@ function renderStats(data) {
     ["Entries", fmtNum(data.entries)],
     ["Peptide Chains", fmtNum(data.peptide_chains)],
     ["Interfaces", fmtNum(data.interface_pairs)],
+    ["Affinity Annotations", fmtNum(data.affinity_annotations)],
     ["CIF Files", fmtNum(data.cif_files)],
     ["Cyclic PDB IDs", fmtNum(data.cyclic_pdb_ids)],
     ["Clusters", fmtNum(data.clusters)],
@@ -151,7 +154,8 @@ function shortClusterId(clusterId) {
 function entryRow(item) {
   const res = item.d_res_high ? Number(item.d_res_high).toFixed(2) : "-";
   const hasPepNonstd = Number(item.nonstd_chain_count || 0) > 0;
-  const flag = hasPepNonstd ? '<span class="tag">pep nonstd</span>' : "";
+  const flag = hasPepNonstd ? '<span class="tag">nonstd</span>' : "";
+  const affinity = item.has_affinity ? '<span class="tag">Yes</span>' : "No";
   const cyclic = item.is_cyclic ? "Yes" : "No";
   const cycTypes = (item.cyclic_types || []).join(", ") || "-";
   const clusterTitle = esc(item.cluster_id || "-");
@@ -166,6 +170,7 @@ function entryRow(item) {
       <td>${fmtNum(item.chain_count)}</td>
       <td>${fmtNum(item.peptide_chain_count)}</td>
       <td>${fmtNum(item.nonstd_chain_count)}</td>
+      <td>${affinity}</td>
       <td><span class="cluster-chip" title="${clusterTitle}">${clusterLabel}</span> (${clusterSize})</td>
       <td>${esc(cyclic)}</td>
       <td>${esc(cycTypes)}</td>
@@ -179,7 +184,7 @@ function renderEntries(payload) {
   tableEl.innerHTML = payload.items.map(entryRow).join("");
 
   if (!payload.items.length) {
-    tableEl.innerHTML = '<tr><td colspan="10">No result found.</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="11">No result found.</td></tr>';
   }
 
   const totalPages = Math.max(1, Math.ceil(payload.total / state.pageSize));
@@ -293,9 +298,17 @@ function renderFunctionBlocks(base) {
               const canonicalHtml = canonical
                 ? `<div><span class="kv">Canonical Target:</span> ${esc(canonical)}</div>`
                 : "";
+              const targetMeta = [
+                t.status ? `Status: ${t.status}` : "",
+                t.updated_at ? `Updated: ${t.updated_at}` : "",
+              ].filter(Boolean).join(" | ");
+              const targetMetaHtml = targetMeta
+                ? `<div><span class="kv">Target Card:</span> ${esc(targetMeta)}</div>`
+                : "";
               return `<div style="padding:6px 0;border-top:1px dashed var(--line);">
                 <div><strong>Target: ${targetLabel}</strong> ${otLink}</div>
                 ${canonicalHtml}
+                ${targetMetaHtml}
                 <div><span class="kv">Mechanism:</span> ${renderSemicolonBullets(t.mechanism_text)}</div>
                 <div><span class="kv">Notes:</span> ${renderSemicolonBullets(t.notes)}</div>
               </div>`;
@@ -350,6 +363,7 @@ function renderOverview() {
         )}</a></td><td>${esc(f.file_type)}</td><td>${fmtSize(f.size_bytes)}</td></tr>`
     )
     .join("");
+  const functionDownloadRow = `<tr><td><a class="dl-link" href="${API_BASE}/api/download/${esc(base.entry_key)}/function.json">function.json</a></td><td>function</td><td>generated</td></tr>`;
   const members = base.cluster_members || [];
   const currentKey = String(base.entry_key || "");
   const memberItems = members
@@ -384,7 +398,7 @@ function renderOverview() {
       }</div>
     </div>
 
-    <h3>Peptide Functions</h3>
+    <h3>Function Annotation & Affinity</h3>
     ${renderFunctionBlocks(base)}
 
     <h3>Cluster Members</h3>
@@ -402,7 +416,7 @@ function renderOverview() {
     <div class="table-wrap">
       <table class="dense-table files-table">
         <thead><tr><th>File</th><th>Type</th><th>Size</th></tr></thead>
-        <tbody>${filesRows || '<tr><td colspan="3">-</td></tr>'}</tbody>
+        <tbody>${filesRows}${functionDownloadRow}</tbody>
       </table>
     </div>
   `;
@@ -764,6 +778,7 @@ async function loadEntries() {
   if (state.date_from) params.set("date_from", state.date_from);
   if (state.date_to) params.set("date_to", state.date_to);
   if (state.has_nonstd) params.set("has_nonstd", state.has_nonstd);
+  if (state.has_affinity) params.set("has_affinity", state.has_affinity);
   if (state.is_cyclic) params.set("is_cyclic", state.is_cyclic);
 
   renderEntries(await fetchJson(`/api/entries?${params.toString()}`));
@@ -775,6 +790,7 @@ async function search() {
   state.date_from = dateFromFilterEl?.value?.trim() || "";
   state.date_to = dateToFilterEl?.value?.trim() || "";
   state.has_nonstd = nonstdFilterEl.value;
+  state.has_affinity = affinityFilterEl.value;
   state.is_cyclic = cyclicFilterEl.value;
   await loadEntries();
 }
