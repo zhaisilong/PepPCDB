@@ -1,12 +1,12 @@
 # PepPCDB Deployment Project
 
-Document version: `v0.1.1`
+Document version: `v0.1.2`
 
 This directory is the new local deployment project for PepPCDB. It contains a FastAPI backend, same-origin static frontend assets, release scripts, and documentation for the peptide-protein complex database portal.
 
 ## Versioning
 
-Version history starts at `v0.1.0` in the documentation. The current document/runtime version is `v0.1.1`. This local repository does not use git tags unless that policy changes later.
+Version history starts at `v0.1.0` in the documentation. The current document/runtime version is `v0.1.2`. This local repository does not use git tags unless that policy changes later.
 
 ## Git Policy
 

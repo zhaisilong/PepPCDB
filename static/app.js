@@ -131,11 +131,11 @@ function renderStats(data) {
   }
   statsEl.innerHTML = [
     ["Entries", fmtNum(data.entries)],
-    ["Peptide Chains", fmtNum(data.peptide_chains)],
+    ["Peptides", fmtNum(data.peptide_chains)],
     ["Interfaces", fmtNum(data.interface_pairs)],
-    ["Affinity Annotations", fmtNum(data.affinity_annotations)],
-    ["CIF Files", fmtNum(data.cif_files)],
-    ["Cyclic PDB IDs", fmtNum(data.cyclic_pdb_ids)],
+    ["Affinity", fmtNum(data.affinity_annotations)],
+    ["CIFs", fmtNum(data.cif_files)],
+    ["Cyclic", fmtNum(data.cyclic_pdb_ids)],
     ["Clusters", fmtNum(data.clusters)],
   ]
     .map(

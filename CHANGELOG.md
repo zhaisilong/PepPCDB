@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.2 - 2026-05-27
+
+### Changed
+
+- Updated runtime/document version to `v0.1.2`.
+- Refined the Home hero title and subtitle for the PepPCDB/NAR paper positioning.
+- Compressed Home stats labels and card spacing to reduce wrapping in the first viewport.
+- Split the search panel into a main search row and a secondary filter row.
+
 ## v0.1.1 - 2026-05-27
 
 ### Added

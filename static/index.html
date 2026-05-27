@@ -28,21 +28,25 @@
     <main class="container">
       <section class="hero">
         <p class="eyebrow">Peptide-Protein Complex Atlas</p>
-        <h1>Search, Browse, and Download Curated Structural Complexes</h1>
+        <h1>PepPCDB: Function- and Affinity-Annotated Peptide-Protein Complexes</h1>
         <p class="subtitle">
-          Pre-indexed database inspired by PDBBank and AFDB portal style.
+          A curated PDB-derived atlas linking peptide chains, protein targets,
+          interfaces, functions, and affinity values.
         </p>
         <p class="db-date" id="dbDate"></p>
         <div class="stats" id="stats"></div>
       </section>
 
       <section class="search-panel" id="browser">
-        <div class="search-row">
+        <div class="search-main-row">
           <input
             id="searchInput"
             type="text"
             placeholder="Search by PDB ID, cluster ID, chain ID, or sequence fragment"
           />
+          <button id="searchBtn">Search</button>
+        </div>
+        <div class="filter-row">
           <input id="dateFromFilter" type="date" />
           <input id="dateToFilter" type="date" />
           <select id="nonstdFilter">
@@ -60,7 +64,6 @@
             <option value="1">Cyclic Only</option>
             <option value="0">Non-Cyclic Only</option>
           </select>
-          <button id="searchBtn">Search</button>
         </div>
       </section>
 
