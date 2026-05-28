@@ -419,6 +419,16 @@ tbody tr:hover {
   margin-bottom: 14px;
 }
 
+.detail-grid-full {
+  grid-column: 1 / -1;
+}
+
+.hash-list code {
+  display: inline;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .kv,
 .muted {
   color: var(--muted);

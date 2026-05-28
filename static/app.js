@@ -159,13 +159,15 @@ async function fetchJson(path) {
 
 function renderStats(data) {
   if (dbDateEl) {
-    dbDateEl.textContent = `PepPCDB Database Date: ${data.db_update_date || "-"}`;
+    const dbDate = data.db_update_date || "-";
+    const pdbSnapshotDate = data.pdb_source_snapshot_date || "-";
+    dbDateEl.textContent = `PepPCDB Release Date: ${dbDate} | PDB Source Snapshot: ${pdbSnapshotDate}`;
   }
   statsEl.innerHTML = [
     ["Entries", fmtNum(data.entries)],
     ["Peptides", fmtNum(data.peptide_chains)],
     ["Clusters", fmtNum(data.clusters)],
-    ["Interfaces", fmtNum(data.interface_pairs)],
+    ["Interfaces", fmtNum(data.peppi_interface_pairs)],
     ["Cyclic", fmtNum(data.cyclic_pdb_ids)],
     ["Affinity", fmtNum(data.affinity_annotations)],
   ]
@@ -205,7 +207,7 @@ function entryRow(item) {
       <td><span class="cluster-chip" title="${clusterTitle}">${clusterLabel}</span> (${clusterSize})</td>
       <td>${esc(cyclic)}</td>
       <td>${esc(cycTypes)}</td>
-      <td>${fmtNum(item.interface_pair_count)}</td>
+      <td>${fmtNum(item.peppi_interface_pair_count)}</td>
     </tr>
   `;
 }
@@ -330,19 +332,15 @@ function renderFunctionBlocks(base) {
               const canonicalHtml = canonical
                 ? `<div><span class="kv">Canonical Target:</span> ${esc(canonical)}</div>`
                 : "";
-              const targetMeta = [
-                t.status ? `Status: ${t.status}` : "",
-                t.updated_at ? `Updated: ${t.updated_at}` : "",
-              ].filter(Boolean).join(" | ");
-              const targetMetaHtml = targetMeta
-                ? `<div><span class="kv">Target Card:</span> ${esc(targetMeta)}</div>`
+              const targetMetaHtml = t.status || t.updated_at
+                ? `<div><span class="kv">Status:</span> ${esc(t.status || "-")} | <span class="kv">Updated:</span> ${esc(t.updated_at || "-")}</div>`
                 : "";
               return `<div style="padding:6px 0;border-top:1px dashed var(--line);">
                 <div><strong>Target: ${targetLabel}</strong> ${otLink}</div>
                 ${canonicalHtml}
-                ${targetMetaHtml}
                 <div><span class="kv">Mechanism:</span> ${renderSemicolonBullets(t.mechanism_text)}</div>
                 <div><span class="kv">Notes:</span> ${renderSemicolonBullets(t.notes)}</div>
+                ${targetMetaHtml}
               </div>`;
             })
             .join("")
@@ -423,11 +421,14 @@ function renderOverview() {
       <div><span class="kv">Nonstd Count:</span> ${fmtNum(base.nonstd_mod_count)}</div>
       <div><span class="kv">Is Cyclic:</span> ${base.is_cyclic ? "Yes" : "No"}</div>
       <div><span class="kv">Cyclic Types:</span> ${esc((base.cyclic_types || []).join(", ") || "-")}</div>
-      <div><span class="kv">Interfaces:</span> ${fmtNum(base.interface_pair_count)}</div>
+      <div><span class="kv">PepPI Interfaces:</span> ${fmtNum(base.peppi_interface_pair_count)}</div>
+      <div><span class="kv">Interface Pairs:</span> ${fmtNum(base.interface_pair_count)}</div>
       <div><span class="kv">PDB Deposition Date:</span> ${esc(base.deposition_date || "-")}</div>
-      <div><span class="kv">Cluster ID:</span> <code title="${esc(base.cluster_id || "-")}">${esc(base.cluster_id || "-")}</code></div>
       <div><span class="kv">Cluster Members:</span> ${fmtNum(base.cluster_member_count)}</div>
-      <div style="grid-column: 1 / -1;"><span class="kv">All Clusters:</span> ${
+      <div class="detail-grid-full hash-list"><span class="kv">Cluster ID:</span> <code title="${esc(base.cluster_id || "-")}">${esc(
+        base.cluster_id || "-"
+      )}</code></div>
+      <div class="detail-grid-full hash-list"><span class="kv">All Clusters:</span> ${
         Array.isArray(base.cluster_ids) && base.cluster_ids.length
           ? base.cluster_ids.map((cid) => `<code title="${esc(cid)}">${esc(cid)}</code>`).join(" ")
           : "-"

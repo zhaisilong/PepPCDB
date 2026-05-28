@@ -38,6 +38,7 @@ DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
 APP_VERSION = "0.1.5"
+PDB_SOURCE_SNAPSHOT_DATE = os.environ.get("PEPPCDB_PDB_SOURCE_SNAPSHOT_DATE", "2025-12-29")
 DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
 DOWNLOAD_RATE_WINDOW_SECONDS = 3600
 USAGE_SALT = os.environ.get("PEPPCDB_USAGE_SALT", "")
@@ -433,6 +434,9 @@ def stats() -> dict[str, Any]:
             "entries": conn.execute("SELECT COUNT(*) AS n FROM entries").fetchone()["n"],
             "peptide_chains": conn.execute("SELECT COUNT(*) AS n FROM peptide_chains").fetchone()["n"],
             "interface_pairs": conn.execute("SELECT COUNT(*) AS n FROM interface_pairs").fetchone()["n"],
+            "peppi_interface_pairs": conn.execute(
+                "SELECT COUNT(*) AS n FROM interface_pairs WHERE interface_kind='PepPI'"
+            ).fetchone()["n"],
             "cif_files": conn.execute(
                 "SELECT COUNT(*) AS n FROM entry_files WHERE file_type='cif'"
             ).fetchone()["n"],
@@ -441,6 +445,7 @@ def stats() -> dict[str, Any]:
             "cyclic_pdb_ids": conn.execute("SELECT COUNT(*) AS n FROM entries WHERE is_cyclic = 1").fetchone()["n"],
             "clusters": conn.execute("SELECT COUNT(DISTINCT cluster_id) AS n FROM entry_clusters").fetchone()["n"],
             "db_update_date": db_update_date(conn),
+            "pdb_source_snapshot_date": PDB_SOURCE_SNAPSHOT_DATE,
         }
     manual = manual_state()
     payload["affinity_annotations"] = manual.get("affinity_annotation_count", 0)
@@ -520,7 +525,7 @@ def entries(
         "chains": "e.chain_count",
         "peptides": "e.peptide_chain_count",
         "nonstd_chains": "e.nonstd_chain_count",
-        "interfaces": "e.interface_pair_count",
+        "interfaces": "(SELECT COUNT(*) FROM interface_pairs ip WHERE ip.entry_id = e.id AND ip.interface_kind='PepPI')",
         "clusters": "(SELECT COUNT(DISTINCT ec2.entry_id) FROM entry_clusters ec2 WHERE ec2.cluster_id = e.source_hash)",
     }
     order_col = sort_map.get(sort_by.lower(), "e.deposition_date")
@@ -536,6 +541,11 @@ def entries(
                 e.exptl_method, e.deposition_date, e.d_res_high, e.chain_count,
                 e.peptide_chain_count, e.nonstd_chain_count, e.nonstd_mod_count,
                 e.is_cyclic, e.cyclic_chain_count, e.cyclic_types_json, e.interface_pair_count,
+                (
+                    SELECT COUNT(*)
+                    FROM interface_pairs ip
+                    WHERE ip.entry_id = e.id AND ip.interface_kind='PepPI'
+                ) AS peppi_interface_pair_count,
                 CASE WHEN e.nonstd_chain_count > 0 THEN 1 ELSE 0 END AS has_nonstd,
                 (SELECT COUNT(DISTINCT ec2.entry_id) FROM entry_clusters ec2 WHERE ec2.cluster_id = e.source_hash) AS cluster_member_count
             FROM entries e
@@ -570,6 +580,11 @@ def entry_detail(entry_key: str) -> dict[str, Any]:
                 peptide_chain_count, CASE WHEN nonstd_chain_count > 0 THEN 1 ELSE 0 END AS has_nonstd,
                 nonstd_chain_count, nonstd_mod_count, is_cyclic, cyclic_chain_count, cyclic_types_json,
                 interface_pair_count,
+                (
+                    SELECT COUNT(*)
+                    FROM interface_pairs ip
+                    WHERE ip.entry_id = entries.id AND ip.interface_kind='PepPI'
+                ) AS peppi_interface_pair_count,
                 (SELECT COUNT(DISTINCT ec2.entry_id) FROM entry_clusters ec2 WHERE ec2.cluster_id = entries.source_hash) AS cluster_member_count
             FROM entries
             WHERE lower(pdb_id) = ? OR entry_key = ?
