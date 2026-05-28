@@ -247,6 +247,7 @@ function cycleTags(chain) {
   if (chain.cyclic_head2side) tags.push("Head-to-Side");
   if (chain.cyclic_side2tail) tags.push("Side-to-Tail");
   if (chain.cyclic_side2side) tags.push("Side-to-Side");
+  if (chain.cyclic_has_cyc_linker) tags.push("Cyclic Linker");
   if (!tags.length && Number(chain.n_cyclic || 0) > 0) tags.push("Cyclic");
   return tags;
 }
@@ -471,14 +472,18 @@ function renderAnnotations() {
       const cyc = cycleTags(c)
         .map((x) => `<span class="chip">${esc(x)}</span>`)
         .join(" ");
-      const mods = c.mod_types.length ? c.mod_types.join(", ") : "None";
-      const pos = c.mod_positions.length ? c.mod_positions.join(", ") : "-";
+      const modTypes = Array.isArray(c.mod_types) ? c.mod_types : [];
+      const modPositions = Array.isArray(c.mod_positions) ? c.mod_positions : [];
+      const mods = modTypes.length ? modTypes.join(", ") : "None";
+      const pos = modPositions.length ? modPositions.join(", ") : "-";
       return `
         <tr id="chain-row-${esc(c.chain_id)}">
           <td>${esc(c.chain_id)}</td>
           <td>${fmtNum(c.length)}</td>
           <td><code>${esc(c.sequence || "")}</code></td>
           <td>${c.has_nonstd ? "Yes" : "No"}</td>
+          <td>${c.mod_has_linker ? "Yes" : "No"}</td>
+          <td>${c.cyclic_has_cyc_linker ? "Yes" : "No"}</td>
           <td>${esc(mods)}</td>
           <td>${esc(pos)}</td>
           <td>${cyc || "-"}</td>
@@ -512,10 +517,10 @@ function renderAnnotations() {
       <table class="dense-table">
         <thead>
           <tr>
-            <th>Chain</th><th>Length</th><th>Sequence</th><th>Nonstd</th><th>Mod Types</th><th>Positions</th><th>Cyclic Type</th>
+            <th>Chain</th><th>Length</th><th>Sequence</th><th>Nonstd</th><th>Linker</th><th>Cyclic Linker</th><th>Mod Types</th><th>Positions</th><th>Cyclic Type</th>
           </tr>
         </thead>
-        <tbody>${chains || '<tr><td colspan="7">-</td></tr>'}</tbody>
+        <tbody>${chains || '<tr><td colspan="9">-</td></tr>'}</tbody>
       </table>
     </div>
     <h3>Nonpoly</h3>

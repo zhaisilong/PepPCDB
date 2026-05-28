@@ -37,7 +37,7 @@ USAGE_DB_PATH = env_path("PEPPCDB_USAGE_DB", DEFAULT_USAGE_DB)
 DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
-APP_VERSION = "0.1.4"
+APP_VERSION = "0.1.5"
 DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
 DOWNLOAD_RATE_WINDOW_SECONDS = 3600
 USAGE_SALT = os.environ.get("PEPPCDB_USAGE_SALT", "")
@@ -674,9 +674,9 @@ def entry_annotations(entry_key: str) -> dict[str, Any]:
             """
             SELECT
                 chain_id, chain_type, length, sequence, has_nonstd,
-                mod_positions_json, mod_types_json,
+                mod_has_linker, mod_positions_json, mod_types_json,
                 cyclic_head2tail, cyclic_head2side, cyclic_side2tail, cyclic_side2side,
-                n_ss, n_nc, n_cyclic, n_cyclic_nonstd
+                cyclic_has_cyc_linker, n_ss, n_nc, n_cyclic, n_cyclic_nonstd
             FROM peptide_chains
             WHERE entry_id = ?
             ORDER BY chain_id

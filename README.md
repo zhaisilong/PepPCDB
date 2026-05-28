@@ -1,6 +1,6 @@
 # PepPCDB Deployment Project
 
-Document version: `v0.1.4`
+Document version: `v0.1.5`
 
 PepPCDB is a local deployment project for browsing and downloading a curated PDB-derived atlas of peptide-protein complexes. The portal links peptide chains, target proteins, interface records, functional annotations, and affinity values through a FastAPI backend and same-origin static frontend.
 
@@ -95,7 +95,7 @@ Default runtime paths:
 
 Current upstream sources:
 
-- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi`
+- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi_v2`
 - Target cards: `/home/silong/codex/peptarget/function_mannual/records/target_cards.jsonl`
 - Pep annotations with affinity patch: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.jsonl`
 - Affinity patch report: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.report.json`
@@ -142,4 +142,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.1.4`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.1.5`. This repository does not use git tags unless that release policy changes later.

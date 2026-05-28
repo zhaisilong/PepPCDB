@@ -229,12 +229,14 @@ def create_schema(conn: sqlite3.Connection) -> None:
             length INTEGER,
             sequence TEXT,
             has_nonstd INTEGER DEFAULT 0,
+            mod_has_linker INTEGER DEFAULT 0,
             mod_positions_json TEXT,
             mod_types_json TEXT,
             cyclic_head2tail INTEGER,
             cyclic_head2side INTEGER,
             cyclic_side2tail INTEGER,
             cyclic_side2side INTEGER,
+            cyclic_has_cyc_linker INTEGER DEFAULT 0,
             n_ss INTEGER,
             n_nc INTEGER,
             n_cyclic INTEGER,
@@ -515,16 +517,35 @@ def build_database(dataset_root: Path, db_path: Path, target_cards_jsonl: Path, 
             nonstd_mod_count += len(mod_positions)
 
             n_cyclic = int(cyclic.get("n_cyclic") or 0)
+            cyclic_head2tail = bool(cyclic.get("head2tail"))
+            cyclic_head2side = bool(cyclic.get("head2side"))
+            cyclic_side2tail = bool(cyclic.get("side2tail"))
+            cyclic_side2side = bool(cyclic.get("side2side"))
+            cyclic_has_cyc_linker = bool(cyclic.get("has_cyc_linker"))
+            chain_is_cyclic = any(
+                (
+                    n_cyclic > 0,
+                    cyclic_head2tail,
+                    cyclic_head2side,
+                    cyclic_side2tail,
+                    cyclic_side2side,
+                    cyclic_has_cyc_linker,
+                )
+            )
             chain_cyclic_types: list[str] = []
-            if n_cyclic > 0 and cyclic.get("head2tail"):
+            if cyclic_head2tail:
                 chain_cyclic_types.append("Head-to-Tail")
-            if n_cyclic > 0 and cyclic.get("head2side"):
+            if cyclic_head2side:
                 chain_cyclic_types.append("Head-to-Side")
-            if n_cyclic > 0 and cyclic.get("side2tail"):
+            if cyclic_side2tail:
                 chain_cyclic_types.append("Side-to-Tail")
-            if n_cyclic > 0 and cyclic.get("side2side"):
+            if cyclic_side2side:
                 chain_cyclic_types.append("Side-to-Side")
-            if n_cyclic > 0:
+            if cyclic_has_cyc_linker:
+                chain_cyclic_types.append("Cyclic Linker")
+            if chain_is_cyclic and not chain_cyclic_types:
+                chain_cyclic_types.append("Cyclic")
+            if chain_is_cyclic:
                 cyclic_chain_count += 1
             cyclic_types.update(chain_cyclic_types)
 
@@ -532,10 +553,10 @@ def build_database(dataset_root: Path, db_path: Path, target_cards_jsonl: Path, 
                 """
                 INSERT INTO peptide_chains (
                     entry_id, chain_id, chain_type, length, sequence,
-                    has_nonstd, mod_positions_json, mod_types_json,
+                    has_nonstd, mod_has_linker, mod_positions_json, mod_types_json,
                     cyclic_head2tail, cyclic_head2side, cyclic_side2tail, cyclic_side2side,
-                    n_ss, n_nc, n_cyclic, n_cyclic_nonstd
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    cyclic_has_cyc_linker, n_ss, n_nc, n_cyclic, n_cyclic_nonstd
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     entry_id,
@@ -544,15 +565,17 @@ def build_database(dataset_root: Path, db_path: Path, target_cards_jsonl: Path, 
                     item.get("length"),
                     item.get("sequence"),
                     1 if modification.get("has_nonstd") else 0,
+                    1 if modification.get("has_linker") else 0,
                     json.dumps(mod_positions, ensure_ascii=True),
                     json.dumps(modification.get("types", []), ensure_ascii=True),
-                    1 if cyclic.get("head2tail") else 0,
-                    1 if cyclic.get("head2side") else 0,
-                    1 if cyclic.get("side2tail") else 0,
-                    1 if cyclic.get("side2side") else 0,
+                    1 if cyclic_head2tail else 0,
+                    1 if cyclic_head2side else 0,
+                    1 if cyclic_side2tail else 0,
+                    1 if cyclic_side2side else 0,
+                    1 if cyclic_has_cyc_linker else 0,
                     int(cyclic.get("n_ss") or 0),
                     int(cyclic.get("n_nc") or 0),
-                    int(cyclic.get("n_cyclic") or 0),
+                    n_cyclic,
                     int(cyclic.get("n_cyclic_nonstd") or 0),
                 ),
             )

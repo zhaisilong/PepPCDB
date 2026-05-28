@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.5 - 2026-05-28
+
+### Changed
+
+- Updated runtime/document version to `v0.1.5`.
+- Added support for `cyclic.has_cyc_linker` in cyclic classification and cyclic type display.
+- Added Details display for `modification.has_linker` and cyclic linker metadata.
+- Updated the Home title to `PepPCDB: A PDB-wide Database of Peptide-Protein Complexes with Structural and Functional Annotations`.
+- Updated the default release data source to `filtered_peppi_v2`.
+
 ## v0.1.4 - 2026-05-27
 
 ### Added
