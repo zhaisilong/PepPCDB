@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.6 - 2026-05-29
+
+### Added
+
+- Added README and About page community feedback links for GitHub issues and direct email contact.
+
+### Changed
+
+- Updated runtime/document version to `v0.1.6`.
+
 ## v0.1.5 - 2026-05-28
 
 ### Changed

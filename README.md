@@ -2,6 +2,10 @@
 
 PepPCDB is a local deployment project for browsing and downloading a curated PDB-derived atlas of peptide-protein complexes. The portal links peptide chains, target proteins, interface records, functional annotations, and affinity values through a FastAPI backend and same-origin static frontend.
 
+## Feedback and Contributions
+
+If you find issues, missing annotations, or opportunities to improve PepPCDB, please open a [GitHub issue](https://github.com/zhaisilong/PepPCDB/issues) or contact `zhaisilong@outlook.com`. We welcome community input to help improve and expand the database.
+
 ## Quick Start
 
 Start the app from this directory:
@@ -93,4 +97,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.1.5`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.1.6`. This repository does not use git tags unless that release policy changes later.
