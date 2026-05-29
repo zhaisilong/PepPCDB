@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.7 - 2026-05-29
+
+### Fixed
+
+- Refreshed the deployment data source to the `filtered_peppi_v3` release so peptide-protein interfaces recovered by the non-standard/cyclic peptide contact fix, including entries such as 7YV1, are available in the website search and API.
+
+### Changed
+
+- Updated runtime/document version to `v0.1.7`.
+- Kept community feedback and copyright notes readable on the About page with explicit line breaks.
+
 ## v0.1.6 - 2026-05-29
 
 ### Added
