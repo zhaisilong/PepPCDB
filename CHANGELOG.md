@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.0 - 2026-06-01
+
+### Changed
+
+- Released the rebuilt deployment data after target-card review and peptide annotation updates.
+- Updated runtime/document version to `v0.2.0`.
+- Updated deployment documentation and About page wording to refer to the current `filtered_peppi` release instead of stale `filtered_peppi_v2` text.
+
+### Data
+
+- Current deployment check: 14,385 entries, 21,798 peptide chains, 48,916 interface pairs, 27,419 peptide-protein (`PepPI`) interfaces, 2,888 clusters, 7,628 target cards, 14,305 peptide annotations, and 2,052 affinity annotations.
+- Confirmed repaired non-standard/cyclic peptide interface entries such as 7YV1 are searchable and expose function JSON downloads.
+
 ## v0.1.7 - 2026-05-29
 
 ### Fixed

@@ -50,7 +50,7 @@ Default runtime paths:
 
 Current upstream sources:
 
-- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi_v2`
+- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi_v3`
 - Target cards: `/home/silong/codex/peptarget/function_mannual/records/target_cards.jsonl`
 - Pep annotations with affinity patch: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.jsonl`
 - Affinity patch report: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.report.json`
@@ -97,4 +97,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.1.7`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.2.0`. This repository does not use git tags unless that release policy changes later.
