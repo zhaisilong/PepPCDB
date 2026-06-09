@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.7.2 - 2026-06-09
+
+### Changed
+
+- Updated runtime/document version to `v0.7.2`.
+- Updated AF3 input generation so ordinary sequential peptide backbone `C-N` bonds are not emitted as explicit `bondedAtomPairs`.
+- Kept non-sequential peptide bonds, cyclic links, cross-links, and cross-chain peptide-related bonds available for AF3 input generation.
+- Refined the About roadmap wording for the companion `afrun` local AFRun/MSA workflow.
+
 ## v0.7.1 - 2026-06-09
 
 ### Changed

@@ -399,6 +399,28 @@ def connect_to_bond(row: dict[str, Any]) -> list[Any] | None:
     ]
 
 
+def is_sequential_peptide_backbone_bond(row: dict[str, Any], peptide_chain_ids: set[str]) -> bool:
+    c1 = str(row.get("ptnr1_chain") or "")
+    c2 = str(row.get("ptnr2_chain") or "")
+    if not c1 or c1 != c2 or c1 not in peptide_chain_ids:
+        return False
+
+    atom1 = str(row.get("ptnr1_atom") or "").strip().upper()
+    atom2 = str(row.get("ptnr2_atom") or "").strip().upper()
+    if {atom1, atom2} != {"C", "N"}:
+        return False
+
+    try:
+        seq1 = int(row.get("ptnr1_seq"))
+        seq2 = int(row.get("ptnr2_seq"))
+    except (TypeError, ValueError):
+        return False
+
+    c_seq = seq1 if atom1 == "C" else seq2
+    n_seq = seq1 if atom1 == "N" else seq2
+    return n_seq == c_seq + 1
+
+
 def normalize_connect(row: dict[str, Any]) -> dict[str, Any]:
     if "ptnr1" not in row and "ptnr2" not in row:
         return row
@@ -440,6 +462,8 @@ def bonded_atom_pairs(
         peptide_related = c1 in peptide_chain_ids or c2 in peptide_chain_ids
         if peptide_related:
             if not include_peptide_bonds or ctype not in PEPTIDE_BOND_TYPES:
+                continue
+            if is_sequential_peptide_backbone_bond(row, peptide_chain_ids):
                 continue
         elif not include_protein_bonds or ctype not in PROTEIN_BOND_TYPES:
             continue

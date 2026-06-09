@@ -68,7 +68,7 @@
   ],
   "roadmap_todo": [
     "Precomputed MSA-enriched JSON direct prediction support is under internal testing and planned for a future release.",
-    "Readers can use https://github.com/zhaisilong/afrun to build their own local AFRun/MSA prediction library.",
+    "Readers can use https://github.com/zhaisilong/afrun to build a local AFRun/MSA prediction library.",
     "Extension of affinity annotations to targets beyond structural peptide binders"
   ]
 }

@@ -81,7 +81,7 @@ The same generator is available from the command line:
 .venv/bin/python scripts/annotation_to_af3_input.py 7yv1 --pair-id 7yv1_A_I --extra-chain H --output 7yv1_af3_input.json
 ```
 
-The generator reads full polymer chain records from `filtered_peppi`, preserves non-standard residue CCD codes in AF3 `modifications`, converts known CCD residue codes to one-letter sequence characters, and falls back to `X` when a modified residue has no known one-letter mapping. The configuration-generation workflow is derived from our companion project [`afrun`](https://github.com/zhaisilong/afrun).
+The generator reads full polymer chain records from `filtered_peppi`, preserves non-standard residue CCD codes in AF3 `modifications`, converts known CCD residue codes to one-letter sequence characters, and falls back to `X` when a modified residue has no known one-letter mapping. Peptide-related `bondedAtomPairs` omit ordinary sequential peptide backbone `C-N` bonds while retaining non-sequential, cyclic, cross-link, and cross-chain connections. The configuration-generation workflow is derived from our companion project [`afrun`](https://github.com/zhaisilong/afrun).
 
 Direct prediction from precomputed MSA-enriched JSON is still under internal testing because MSA files can be large. A future PepPCDB release will document that workflow once it is ready; readers who need local AF3/AFRun workflows now can use [`afrun`](https://github.com/zhaisilong/afrun) to build their own MSA and prediction library.
 
@@ -112,4 +112,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.7.1`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.7.2`. This repository does not use git tags unless that release policy changes later.
