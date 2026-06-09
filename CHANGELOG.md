@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.7.1 - 2026-06-09
+
+### Changed
+
+- Updated runtime/document version to `v0.7.1`.
+- Clarified that PepPCDB AF3 input generation is derived from the companion `afrun` project: https://github.com/zhaisilong/afrun.
+- Updated README and About roadmap notes to mark AF3 config generation as available.
+- Added a future-work note that direct prediction from precomputed MSA-enriched JSON remains under internal testing because MSA files can be large.
+
 ## v0.7.0 - 2026-06-09
 
 ### Added

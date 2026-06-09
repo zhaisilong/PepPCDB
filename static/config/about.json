@@ -2,6 +2,11 @@
   "development_log": [
     {
       "date": "2026-06-09",
+      "update": "AlphaFold 3 generation notes were clarified",
+      "note": "Documented that PepPCDB AF3 input generation is derived from our companion afrun project at https://github.com/zhaisilong/afrun, and clarified that precomputed MSA-enriched JSON prediction remains under internal testing."
+    },
+    {
+      "date": "2026-06-09",
       "update": "AlphaFold 3 input generation was added",
       "note": "Added a Browse detail tab and local CLI script for generating AF3 JSON inputs from PepPCDB peptide-protein annotations."
     },
@@ -62,7 +67,8 @@
     }
   ],
   "roadmap_todo": [
-    "Batch export support for AF3 input generation",
+    "Precomputed MSA-enriched JSON direct prediction support is under internal testing and planned for a future release.",
+    "Readers can use https://github.com/zhaisilong/afrun to build their own local AFRun/MSA prediction library.",
     "Extension of affinity annotations to targets beyond structural peptide binders"
   ]
 }
