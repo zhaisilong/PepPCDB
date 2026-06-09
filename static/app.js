@@ -1,6 +1,6 @@
 const API_BASE = (() => {
   const path = window.location.pathname;
-  if (path.endsWith("/index.html")) return path.slice(0, -"/index.html".length);
+  if (path.endsWith(".html")) return path.slice(0, path.lastIndexOf("/"));
   if (path.endsWith("/")) return path.slice(0, -1);
   return "";
 })();
@@ -43,6 +43,9 @@ const nonstdFilterEl = document.getElementById("nonstdFilter");
 const affinityFilterEl = document.getElementById("affinityFilter");
 const cyclicFilterEl = document.getElementById("cyclicFilter");
 const gotoPageInputEl = document.getElementById("gotoPageInput");
+let molstarViewer = null;
+let molstarLoadToken = 0;
+let molstarScriptPromise = null;
 const popoverEl = document.createElement("div");
 popoverEl.className = "mod-popover";
 popoverEl.style.display = "none";
@@ -717,37 +720,109 @@ function renderStructure() {
   }
   const pdbUpper = pdbId.toUpperCase();
   const cifUrl = `${API_BASE}${data.download_url}`;
-  const molstarUrl = `https://molstar.org/viewer/?hide-controls=1&prefer-webgl1=1&pixel-scale=1&disable-wboit=1&url=${encodeURIComponent(
-    cifUrl
-  )}&format=mmcif`;
-  const previewImg = `https://cdn.rcsb.org/images/structures/${pdbId}_assembly-1.jpeg`;
 
   contentEl.innerHTML = `
-    <p class="tab-intro">Fast static preview by default. Open Mol* only when you need interactive 3D.</p>
+    <p class="tab-intro">Interactive local Mol* rendering from the entry mmCIF file served by PepPCDB.</p>
     <div class="viewer-toolbar">
       <div class="viewer-actions-left">
-        <a class="viewer-link" href="${molstarUrl}" target="_blank" rel="noopener noreferrer">Open In Mol*</a>
+        <span class="viewer-status" id="molstarStatus">Loading local 3D viewer...</span>
       </div>
       <div class="viewer-actions-right">
         <a class="dl-link" href="${API_BASE}${esc(data.download_url)}">Download CIF</a>
         <a class="ext-link" href="${esc(data.pdb_url || "#")}" target="_blank" rel="noopener noreferrer">RCSB PDB</a>
       </div>
     </div>
-    <div class="viewer3d viewer3d-static">
-      <img class="structure-thumb" src="${previewImg}" alt="${pdbUpper} structure preview" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-    </div>
-    <p class="muted">Preview is a lightweight image for speed. Use "Open In Mol*" for interactive rendering.</p>
+    <div class="viewer3d viewer3d-local" id="molstarHost" aria-label="${esc(pdbUpper)} local 3D structure viewer"></div>
+    <p class="muted">The viewer loads locally served mmCIF data. Rotate, zoom, and change styles directly in the Mol* controls.</p>
   `;
+  window.requestAnimationFrame(() => loadLocalMolstar({ cifUrl, pdbUpper }));
 }
 
 function renderActiveTab() {
+  if (state.activeTab !== "structure") disposeMolstarViewer();
   if (state.activeTab === "overview") return renderOverview();
   if (state.activeTab === "annotations") return renderAnnotations();
   if (state.activeTab === "structure") return renderStructure();
   return renderInterfaces();
 }
 
+function setMolstarStatus(message, isError = false) {
+  const el = document.getElementById("molstarStatus");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle("viewer-status-error", isError);
+}
+
+function disposeMolstarViewer() {
+  if (!molstarViewer) return;
+  try {
+    molstarViewer.dispose();
+  } catch (err) {
+    console.warn("Failed to dispose Mol* viewer:", err);
+  }
+  molstarViewer = null;
+}
+
+async function loadLocalMolstar({ cifUrl, pdbUpper }) {
+  const host = document.getElementById("molstarHost");
+  if (!host) return;
+  const token = ++molstarLoadToken;
+  disposeMolstarViewer();
+  setMolstarStatus("Loading local Mol* assets...");
+  try {
+    await ensureMolstarScript();
+  } catch (err) {
+    setMolstarStatus(`Local Mol* assets failed to load: ${err.message || err}`, true);
+    return;
+  }
+  if (!window.molstar || !window.molstar.Viewer) {
+    setMolstarStatus("Local Mol* assets are unavailable.", true);
+    return;
+  }
+
+  try {
+    molstarViewer = await window.molstar.Viewer.create(host, {
+      layoutIsExpanded: false,
+      layoutShowControls: true,
+      layoutShowRemoteState: false,
+      layoutShowSequence: false,
+      layoutShowLog: false,
+      layoutShowLeftPanel: false,
+      viewportShowExpand: true,
+      viewportShowSelectionMode: false,
+      viewportShowAnimation: false,
+      pdbProvider: "rcsb",
+      emdbProvider: "rcsb",
+    });
+    if (token !== molstarLoadToken) {
+      disposeMolstarViewer();
+      return;
+    }
+    await molstarViewer.loadStructureFromUrl(cifUrl, "mmcif", false, { label: pdbUpper });
+    setMolstarStatus(`Loaded ${pdbUpper} from local mmCIF.`);
+  } catch (err) {
+    console.error(err);
+    disposeMolstarViewer();
+    setMolstarStatus(`Local 3D rendering failed: ${err.message || err}`, true);
+  }
+}
+
+function ensureMolstarScript() {
+  if (window.molstar && window.molstar.Viewer) return Promise.resolve();
+  if (molstarScriptPromise) return molstarScriptPromise;
+  molstarScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `${API_BASE}/vendor/molstar/molstar.js`;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("molstar.js could not be loaded"));
+    document.head.appendChild(script);
+  });
+  return molstarScriptPromise;
+}
+
 async function loadDetail(entryKey) {
+  disposeMolstarViewer();
   state.currentEntryKey = entryKey;
   setUrlEntryKey(entryKey);
   state.activeTab = "overview";

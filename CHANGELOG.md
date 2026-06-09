@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.2 - 2026-06-09
+
+### Added
+
+- Added a dedicated Browse page for search, filtering, entry details, interface views, downloads, and local 3D structure inspection.
+- Added a dedicated Status page for dataset counts, annotation coverage, release metadata, and usage statistics.
+- Added local Mol* viewer assets and interactive mmCIF rendering from PepPCDB-hosted structure files.
+
+### Changed
+
+- Updated runtime/document version to `v0.6.2`.
+- Reworked the Home page into a database overview with feature descriptions and dataset snapshot cards instead of loading the full entry browser directly.
+- Moved the feature overview from About to Home, kept About focused on legend rules, feedback, download API notes, roadmap, and development log.
+- Moved Community Feedback after Legend Details and removed duplicate Usage Statistics from About.
+- Extended internal `/api/stats` with target-card, peptide-annotation, and affinity-entry counts for Status/Home displays.
+
 ## v0.2.0 - 2026-06-01
 
 ### Changed

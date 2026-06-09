@@ -21,38 +21,18 @@
     <a class="brand" href="./index.html">PepPCDB</a>
     <nav>
       <a href="./index.html">Home</a>
+      <a href="./browse.html">Browse</a>
+      <a href="./status.html">Status</a>
+      <a class="active" href="./about.html">About</a>
       <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <a href="./about.html">About</a>
     </nav>
   </header>
 
   <main class="container">
     <section class="hero">
       <p class="eyebrow">About PepPCDB</p>
-      <h1>Features And Sequence Annotation Rules</h1>
-      <p class="subtitle">Portal-level notes for browsing, structure display, and interface annotation semantics.</p>
-    </section>
-
-    <section class="detail">
-      <h2>Features</h2>
-      <ul class="flat-list">
-        <li>Prebuilt SQLite index for the current PDB-derived <code>filtered_peppi</code> peptide-protein complex release.</li>
-        <li>Search and filter entries by PDB ID, cluster ID, peptide chain, sequence fragment, non-standard residues, cyclic status, and affinity availability.</li>
-        <li>Function Annotation & Affinity view linking peptide ligands to protein target cards, functional roles, curated notes, and normalized affinity values.</li>
-        <li>Peptide annotation view covering sequence, chain length, non-standard modifications, linker metadata, cyclic topology, nonpoly components, and covalent/connect records.</li>
-        <li>Interface view with pair classification (`PepPI` / `PPI` / `other`), while summary statistics and entry sorting highlight peptide-protein (`PepPI`) interfaces.</li>
-        <li>3D structure view with RCSB preview, Mol* launch, mmCIF download, entry ZIP download, and generated function JSON download.</li>
-      </ul>
-    </section>
-
-    <section class="detail" id="community-feedback">
-      <h2>Community Feedback</h2>
-      <p class="muted">
-        If you find issues, missing annotations, or opportunities to improve PepPCDB, please open a
-        <a class="ext-link" href="https://github.com/zhaisilong/PepPCDB/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>
-        or contact <a class="ext-link" href="mailto:zhaisilong@outlook.com">zhaisilong@outlook.com</a>.<br>
-        We welcome community input to help improve and expand the database.
-      </p>
+      <h1>Sequence Annotation Rules</h1>
+      <p class="subtitle">Portal-level notes for interface annotation semantics, download APIs, and community feedback.</p>
     </section>
 
     <section class="detail" id="legend-details">
@@ -96,6 +76,16 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <section class="detail" id="community-feedback">
+      <h2>Community Feedback</h2>
+      <p class="muted">
+        If you find issues, missing annotations, or opportunities to improve PepPCDB, please open a
+        <a class="ext-link" href="https://github.com/zhaisilong/PepPCDB/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>
+        or contact <a class="ext-link" href="mailto:zhaisilong@outlook.com">zhaisilong@outlook.com</a>.<br>
+        We welcome community input to help improve and expand the database.
+      </p>
     </section>
 
     <section class="detail" id="download-api">
@@ -165,13 +155,6 @@
         <tbody id="devLogBody"></tbody>
       </table>
     </section>
-
-    <section class="detail" id="usage-stats">
-      <h2>Usage Statistics</h2>
-      <p class="muted">Each IP is counted once per day for Home visits and once per day for quick downloads.</p>
-      <div class="usage-grid" id="usageStats"></div>
-      <p class="muted usage-updated" id="usageUpdated"></p>
-    </section>
   </main>
   <footer class="site-footer">
     <div class="footer-inner">
@@ -190,18 +173,6 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
-    }
-
-    function fmtNum(n) {
-      return Number(n || 0).toLocaleString();
-    }
-
-    function appBasePath() {
-      const path = window.location.pathname;
-      if (path.endsWith("/about.html")) return path.slice(0, -"/about.html".length);
-      if (path.endsWith("/index.html")) return path.slice(0, -"/index.html".length);
-      if (path.endsWith("/")) return path.slice(0, -1);
-      return "";
     }
 
     const fallbackDevLog = [
@@ -229,41 +200,10 @@
       }
     }
 
-    function renderUsageStats(data) {
-      const usageStats = document.getElementById("usageStats");
-      const usageUpdated = document.getElementById("usageUpdated");
-      if (!usageStats) return;
-      const items = [
-        ["Today Visits", data?.visit_today],
-        ["Total Daily Visits", data?.visit_total],
-        ["Today Downloads", data?.download_today],
-        ["Total Daily Downloads", data?.download_total]
-      ];
-      usageStats.innerHTML = items
-        .map(([label, value]) => `
-          <div class="usage-card">
-            <div class="usage-label">${esc(label)}</div>
-            <div class="usage-value">${fmtNum(value)}</div>
-          </div>
-        `)
-        .join("");
-      if (usageUpdated) {
-        usageUpdated.textContent = data?.updated_at ? `Updated at ${data.updated_at}` : "";
-      }
-    }
-
     fetch("./config/about.json")
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("config load failed"))))
       .then((data) => renderAboutConfig(data))
       .catch(() => renderAboutConfig({}));
-
-    fetch(`${appBasePath()}/api/usage-stats`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("usage stats load failed"))))
-      .then((data) => renderUsageStats(data))
-      .catch(() => {
-        const usageStats = document.getElementById("usageStats");
-        if (usageStats) usageStats.innerHTML = '<p class="muted">Usage statistics unavailable.</p>';
-      });
 
     document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
   </script>

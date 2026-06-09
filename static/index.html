@@ -19,9 +19,11 @@
     <header class="site-header">
       <a class="brand" href="./index.html">PepPCDB</a>
       <nav>
-        <a href="./index.html">Home</a>
-        <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="active" href="./index.html">Home</a>
+        <a href="./browse.html">Browse</a>
+        <a href="./status.html">Status</a>
         <a href="./about.html">About</a>
+        <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
     </header>
 
@@ -31,75 +33,60 @@
         <h1>PepPCDB: A PDB-wide Database of Peptide-Protein Complexes with Structural and Functional Annotations</h1>
         <p class="subtitle">
           A curated PDB-derived atlas linking peptide chains, protein targets,
-          interfaces, functions, and affinity values.
+          interfaces, biological functions, and affinity values.
         </p>
-        <p class="db-date" id="dbDate"></p>
-        <div class="stats" id="stats"></div>
+        <div class="hero-actions">
+          <a class="primary-action" href="./browse.html">Browse Complexes</a>
+          <a class="secondary-action" href="./status.html">View Data Status</a>
+        </div>
+        <p class="hero-hint" id="entryLinkHint"></p>
       </section>
 
-      <section class="search-panel" id="browser">
-        <div class="search-main-row">
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="Search by PDB ID, cluster ID, chain ID, or sequence fragment"
-          />
-          <button id="searchBtn">Search</button>
-        </div>
-        <div class="filter-row">
-          <input id="dateFromFilter" type="date" />
-          <input id="dateToFilter" type="date" />
-          <select id="nonstdFilter">
-            <option value="">All Entries</option>
-            <option value="1">Has Nonstd</option>
-            <option value="0">Standard Only</option>
-          </select>
-          <select id="affinityFilter">
-            <option value="">All Affinity</option>
-            <option value="1">With Affinity</option>
-            <option value="0">Without Affinity</option>
-          </select>
-          <select id="cyclicFilter">
-            <option value="">All Cyclic Types</option>
-            <option value="1">Cyclic Only</option>
-            <option value="0">Non-Cyclic Only</option>
-          </select>
-        </div>
+      <section class="home-grid">
+        <article class="home-panel">
+          <h2>What PepPCDB Provides</h2>
+          <p>
+            PepPCDB organizes peptide-protein complexes from PDB structures into a browsable atlas with
+            peptide chain metadata, interface records, target cards, function annotation, and affinity links.
+          </p>
+        </article>
+        <article class="home-panel">
+          <h2>Structural Context</h2>
+          <p>
+            Browse entries by PDB ID, sequence fragment, non-standard residue status, cyclic topology,
+            and peptide-protein interface count, then inspect annotations and local 3D structure views.
+          </p>
+        </article>
+        <article class="home-panel">
+          <h2>Function & Affinity Annotation</h2>
+          <p>
+            Curated peptide records connect ligand chains to protein target axes, functional mechanisms,
+            supporting notes, and normalized affinity values when reliable evidence is available.
+          </p>
+        </article>
       </section>
 
-      <section class="results">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>PDB</th>
-                <th><button class="sort-btn" data-sort="date">Date</button></th>
-                <th><button class="sort-btn" data-sort="res">Res(Å)</button></th>
-                <th><button class="sort-btn" data-sort="chains">Chains</button></th>
-                <th><button class="sort-btn" data-sort="peptides">Peptides</button></th>
-                <th><button class="sort-btn" data-sort="nonstd_chains">Nonstd</button></th>
-                <th>Affinity</th>
-                <th><button class="sort-btn" data-sort="clusters">Clusters</button></th>
-                <th>Cyclic</th>
-                <th>Cyclic Types</th>
-                <th><button class="sort-btn" data-sort="interfaces">Interfaces</button></th>
-              </tr>
-            </thead>
-            <tbody id="entryTable"></tbody>
-          </table>
-        </div>
-        <div class="pager">
-          <button id="prevBtn">Prev</button>
-          <span id="pageInfo"></span>
-          <input id="gotoPageInput" type="number" min="1" step="1" placeholder="Page" />
-          <button id="gotoPageBtn">Go</button>
-          <button id="nextBtn">Next</button>
-        </div>
+      <section class="detail">
+        <h2>Features</h2>
+        <ul class="flat-list">
+          <li>Prebuilt SQLite index for the current PDB-derived <code>filtered_peppi</code> peptide-protein complex release.</li>
+          <li>Search and filter entries by PDB ID, cluster ID, peptide chain, sequence fragment, non-standard residues, cyclic status, and affinity availability.</li>
+          <li>Function Annotation & Affinity view linking peptide ligands to protein target cards, functional roles, curated notes, and normalized affinity values.</li>
+          <li>Peptide annotation view covering sequence, chain length, non-standard modifications, linker metadata, cyclic topology, nonpoly components, and covalent/connect records.</li>
+          <li>Interface view with pair classification (<code>PepPI</code> / <code>PPI</code> / <code>other</code>), while summary statistics and entry sorting highlight peptide-protein (<code>PepPI</code>) interfaces.</li>
+          <li>3D structure view with local Mol* rendering from mmCIF, mmCIF download, entry ZIP download, and generated function JSON download.</li>
+        </ul>
       </section>
 
-      <section class="detail" id="detailPanel">
-        <h2 id="detailTitle">Select an entry</h2>
-        <div id="detailBody" class="detail-body"></div>
+      <section class="detail">
+        <div class="section-head">
+          <div>
+            <h2>Dataset Snapshot</h2>
+            <p class="muted" id="homeDbDate">Loading current release status...</p>
+          </div>
+          <a class="ext-link" href="./status.html">Full status</a>
+        </div>
+        <div class="stats light-stats" id="homeStats"></div>
       </section>
     </main>
     <footer class="site-footer">
@@ -112,6 +99,6 @@
       </div>
     </footer>
 
-    <script src="./app.js?v=20260528-5" type="module"></script>
+    <script src="./home.js?v=20260608-1" type="module"></script>
   </body>
 </html>

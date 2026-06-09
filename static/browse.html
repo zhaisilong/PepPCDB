@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browse - PepPCDB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./vendor/molstar/molstar.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <header class="site-header">
+      <a class="brand" href="./index.html">PepPCDB</a>
+      <nav>
+        <a href="./index.html">Home</a>
+        <a class="active" href="./browse.html">Browse</a>
+        <a href="./status.html">Status</a>
+        <a href="./about.html">About</a>
+        <a href="https://github.com/zhaisilong/PepPCDB" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <p class="eyebrow">Browse PepPCDB</p>
+        <h1>Search Peptide-Protein Complexes</h1>
+        <p class="subtitle">
+          Search PDB-derived peptide chains, target proteins, interfaces,
+          function annotations, and affinity values.
+        </p>
+        <p class="db-date" id="dbDate"></p>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <section class="search-panel" id="browser">
+        <div class="search-main-row">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Search by PDB ID, cluster ID, chain ID, or sequence fragment"
+          />
+          <button id="searchBtn">Search</button>
+        </div>
+        <div class="filter-row">
+          <input id="dateFromFilter" type="date" />
+          <input id="dateToFilter" type="date" />
+          <select id="nonstdFilter">
+            <option value="">All Entries</option>
+            <option value="1">Has Nonstd</option>
+            <option value="0">Standard Only</option>
+          </select>
+          <select id="affinityFilter">
+            <option value="">All Affinity</option>
+            <option value="1">With Affinity</option>
+            <option value="0">Without Affinity</option>
+          </select>
+          <select id="cyclicFilter">
+            <option value="">All Cyclic Types</option>
+            <option value="1">Cyclic Only</option>
+            <option value="0">Non-Cyclic Only</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="results">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>PDB</th>
+                <th><button class="sort-btn" data-sort="date">Date</button></th>
+                <th><button class="sort-btn" data-sort="res">Res(Å)</button></th>
+                <th><button class="sort-btn" data-sort="chains">Chains</button></th>
+                <th><button class="sort-btn" data-sort="peptides">Peptides</button></th>
+                <th><button class="sort-btn" data-sort="nonstd_chains">Nonstd</button></th>
+                <th>Affinity</th>
+                <th><button class="sort-btn" data-sort="clusters">Clusters</button></th>
+                <th>Cyclic</th>
+                <th>Cyclic Types</th>
+                <th><button class="sort-btn" data-sort="interfaces">Interfaces</button></th>
+              </tr>
+            </thead>
+            <tbody id="entryTable"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prevBtn">Prev</button>
+          <span id="pageInfo"></span>
+          <input id="gotoPageInput" type="number" min="1" step="1" placeholder="Page" />
+          <button id="gotoPageBtn">Go</button>
+          <button id="nextBtn">Next</button>
+        </div>
+      </section>
+
+      <section class="detail" id="detailPanel">
+        <h2 id="detailTitle">Select an entry</h2>
+        <div id="detailBody" class="detail-body"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <p class="footer-main">Copyright © <span id="copyrightYear"></span> PepPCDB. All rights reserved.</p>
+        <p class="footer-sub">
+          PepPCDB interface design, data organization, and web assets are protected by applicable copyright laws.<br>
+          External source data (e.g., RCSB PDB) remains the property of their respective providers.
+        </p>
+      </div>
+    </footer>
+
+    <script src="./app.js?v=20260608-1" type="module"></script>
+  </body>
+</html>
