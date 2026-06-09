@@ -70,6 +70,19 @@ When the upstream dataset or annotation records change, refresh the deployment c
 
 `sync_release_data.sh` uses `rsync --delete` for `filtered_peppi`, so the deployment copy exactly matches the upstream structure dataset. After refresh, record the dataset or annotation change in `CHANGELOG.md`.
 
+## AlphaFold 3 Input Generation
+
+PepPCDB v0.7.0 adds a convenience generator for AlphaFold 3 JSON input files. In the Browse page, open an entry detail view and select the `AF3 Input` tab to choose a PepPI pair, add or remove chains, set seeds, set the job ID, and decide whether to include peptide-related or protein-only bonded atom pairs.
+
+The same generator is available from the command line:
+
+```bash
+.venv/bin/python scripts/annotation_to_af3_input.py 7yv1 --seeds 42 --job-id 7yv1
+.venv/bin/python scripts/annotation_to_af3_input.py 7yv1 --pair-id 7yv1_A_I --extra-chain H --output 7yv1_af3_input.json
+```
+
+The generator reads full polymer chain records from `filtered_peppi`, preserves non-standard residue CCD codes in AF3 `modifications`, converts known CCD residue codes to one-letter sequence characters, and falls back to `X` when a modified residue has no known one-letter mapping.
+
 ## Public Quick Download API
 
 The stable public API surface is limited to quick download endpoints. Browser search/detail APIs are used by the frontend and should be treated as internal. The hosted site uses the `/peppcdb` prefix; a root-path deployment uses the same paths without that prefix.
@@ -97,4 +110,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.6.3`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.7.0`. This repository does not use git tags unless that release policy changes later.

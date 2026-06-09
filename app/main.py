@@ -12,9 +12,11 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+
+from .af3_input import AF3InputError, build_af3_input, build_af3_options
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +39,7 @@ USAGE_DB_PATH = env_path("PEPPCDB_USAGE_DB", DEFAULT_USAGE_DB)
 DATASET_ROOT = env_path("PEPPCDB_DATASET", DEFAULT_DATASET)
 TARGET_CARDS_JSONL = env_path("PEPPCDB_TARGET_CARDS_JSONL", DEFAULT_TARGET_CARDS)
 PEP_ANNOTATIONS_JSONL = env_path("PEPPCDB_PEP_ANNOTATIONS_JSONL", DEFAULT_PEP_ANNOTATIONS)
-APP_VERSION = "0.6.3"
+APP_VERSION = "0.7.0"
 PDB_SOURCE_SNAPSHOT_DATE = os.environ.get("PEPPCDB_PDB_SOURCE_SNAPSHOT_DATE", "2025-12-29")
 DOWNLOAD_RATE_LIMIT = int(os.environ.get("PEPPCDB_DOWNLOAD_RATE_LIMIT", "100"))
 DOWNLOAD_RATE_WINDOW_SECONDS = 3600
@@ -788,6 +790,33 @@ def entry_structure(entry_key: str) -> dict[str, Any]:
         "download_url": f"/api/download/{public_key}/{urllib.parse.quote(file_name)}",
         "pdb_url": pdb_url(row["pdb_id"]),
     }
+
+
+@app.get("/api/entries/{entry_key}/af3-options")
+def entry_af3_options(entry_key: str) -> dict[str, Any]:
+    try:
+        return build_af3_options(DB_PATH, DATASET_ROOT, entry_key)
+    except AF3InputError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/entries/{entry_key}/af3-input")
+def entry_af3_input(entry_key: str, payload: dict[str, Any] | None = Body(default=None)) -> dict[str, Any]:
+    payload = payload or {}
+    try:
+        return build_af3_input(
+            DB_PATH,
+            DATASET_ROOT,
+            entry_key,
+            pair_id=payload.get("pair_id"),
+            chain_ids=payload.get("chain_ids"),
+            seeds=payload.get("seeds"),
+            job_id=payload.get("job_id"),
+            include_peptide_bonds=bool(payload.get("include_peptide_bonds", True)),
+            include_protein_bonds=bool(payload.get("include_protein_bonds", False)),
+        )
+    except AF3InputError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/download/{entry_key}.zip")

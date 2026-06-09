@@ -59,5 +59,5 @@ fi
 
 "$VENV_PYTHON" "$ROOT_DIR/scripts/release_check.py" --fast
 
-echo "Starting PepPCDB v0.6.3 at http://${HOST}:${PORT}"
+echo "Starting PepPCDB v0.7.0 at http://${HOST}:${PORT}"
 exec "$VENV_PYTHON" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --app-dir "$ROOT_DIR"

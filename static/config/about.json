@@ -2,6 +2,11 @@
   "development_log": [
     {
       "date": "2026-06-09",
+      "update": "AlphaFold 3 input generation was added",
+      "note": "Added a Browse detail tab and local CLI script for generating AF3 JSON inputs from PepPCDB peptide-protein annotations."
+    },
+    {
+      "date": "2026-06-09",
       "update": "Home navigation and local 3D display were refined",
       "note": "Added Home CTA links for Browse, Status, About, and GitHub; integrated the PepPCDB banner and local Mol* structure rendering."
     },
@@ -57,7 +62,7 @@
     }
   ],
   "roadmap_todo": [
-    "One-click generation of AFRun configuration files",
+    "Batch export support for AF3 input generation",
     "Extension of affinity annotations to targets beyond structural peptide binders"
   ]
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.7.0 - 2026-06-09
+
+### Added
+
+- Added an `AF3 Input` detail tab for generating AlphaFold 3 JSON inputs from PepPCDB entry annotations.
+- Added internal AF3 option/config endpoints for the Browse UI.
+- Added `scripts/annotation_to_af3_input.py` for command-line AF3 input generation from local deployment data.
+- Added the AlphaFold 3 input format note under `static/docs/input.md`.
+
+### Changed
+
+- Updated runtime/document version to `v0.7.0`.
+- Documented AF3 input generation in the README.
+
 ## v0.6.3 - 2026-06-09
 
 ### Added

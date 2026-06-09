@@ -20,12 +20,22 @@ const state = {
   currentEntryKey: "",
   activeTab: "overview",
   selectedPairId: "",
+  af3Form: {
+    pairId: "",
+    chainIds: [],
+    seeds: "42",
+    jobId: "",
+    includePeptideBonds: true,
+    includeProteinBonds: false,
+  },
   detail: {
     base: null,
     annotations: null,
     interfaces: null,
     structure: null,
     interfaceDetails: {},
+    af3Options: null,
+    af3Result: null,
   },
 };
 
@@ -160,6 +170,25 @@ async function fetchJson(path) {
   return res.json();
 }
 
+async function fetchJsonPost(path, payload) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = `Request failed: ${res.status}`;
+    try {
+      const data = await res.json();
+      detail = data.detail || data.error || detail;
+    } catch {
+      // keep the HTTP status as the fallback message
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 function renderStats(data) {
   if (dbDateEl) {
     const dbDate = data.db_update_date || "-";
@@ -263,6 +292,7 @@ function renderDetailShell(base) {
     ["annotations", "Annotations"],
     ["structure", "3D Structure"],
     ["interfaces", "Interfaces"],
+    ["af3", "AF3 Input"],
   ];
 
   detailBodyEl.innerHTML = `
@@ -738,11 +768,173 @@ function renderStructure() {
   window.requestAnimationFrame(() => loadLocalMolstar({ cifUrl, pdbUpper }));
 }
 
+function resetAf3Form(options) {
+  const defaults = options?.defaults || {};
+  state.af3Form = {
+    pairId: defaults.pair_id || "",
+    chainIds: Array.isArray(defaults.chain_ids) ? [...defaults.chain_ids] : [],
+    seeds: Array.isArray(defaults.seeds) ? defaults.seeds.join(",") : "42",
+    jobId: defaults.job_id || "",
+    includePeptideBonds: defaults.include_peptide_bonds !== false,
+    includeProteinBonds: defaults.include_protein_bonds === true,
+  };
+}
+
+function af3PairById(pairId) {
+  const options = state.detail.af3Options;
+  return (options?.pairs || []).find((pair) => pair.pair_id === pairId) || null;
+}
+
+function af3DefaultChainsForPair(pairId) {
+  const pair = af3PairById(pairId);
+  return pair && Array.isArray(pair.default_chain_ids) ? [...pair.default_chain_ids] : [];
+}
+
+function updateAf3FormFromDom() {
+  const pairSelect = document.getElementById("af3PairSelect");
+  const seedsInput = document.getElementById("af3SeedsInput");
+  const jobInput = document.getElementById("af3JobInput");
+  const peptideBondInput = document.getElementById("af3PeptideBonds");
+  const proteinBondInput = document.getElementById("af3ProteinBonds");
+  const chainInputs = Array.from(document.querySelectorAll(".af3-chain-checkbox"));
+  if (pairSelect instanceof HTMLSelectElement) state.af3Form.pairId = pairSelect.value;
+  if (seedsInput instanceof HTMLInputElement) state.af3Form.seeds = seedsInput.value.trim();
+  if (jobInput instanceof HTMLInputElement) state.af3Form.jobId = jobInput.value.trim();
+  if (peptideBondInput instanceof HTMLInputElement) state.af3Form.includePeptideBonds = peptideBondInput.checked;
+  if (proteinBondInput instanceof HTMLInputElement) state.af3Form.includeProteinBonds = proteinBondInput.checked;
+  state.af3Form.chainIds = chainInputs
+    .filter((input) => input instanceof HTMLInputElement && input.checked)
+    .map((input) => input.getAttribute("data-chain-id"))
+    .filter(Boolean);
+}
+
+function af3PayloadFromForm() {
+  updateAf3FormFromDom();
+  const seeds = state.af3Form.seeds
+    .split(/[,\s;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => Number(x));
+  return {
+    pair_id: state.af3Form.pairId || null,
+    chain_ids: state.af3Form.chainIds,
+    seeds: seeds.length ? seeds : [42],
+    job_id: state.af3Form.jobId || state.detail.af3Options?.defaults?.job_id || state.currentEntryKey,
+    include_peptide_bonds: state.af3Form.includePeptideBonds,
+    include_protein_bonds: state.af3Form.includeProteinBonds,
+  };
+}
+
+function af3ChainBadges(chain) {
+  const tags = [chain.role || "protein"];
+  if (chain.has_nonstd) tags.push("nonstd");
+  if (chain.is_cyclic) tags.push("cyclic");
+  if (chain.mod_has_linker) tags.push("linker");
+  return tags.map((tag) => `<span class="chip">${esc(tag)}</span>`).join(" ");
+}
+
+function af3ChainCard(chain) {
+  const checked = state.af3Form.chainIds.includes(chain.chain_id) ? "checked" : "";
+  const modTypes = Array.isArray(chain.mod_types) && chain.mod_types.length ? chain.mod_types.join(", ") : "-";
+  const modPositions =
+    Array.isArray(chain.mod_positions) && chain.mod_positions.length ? chain.mod_positions.join(", ") : "-";
+  return `
+    <label class="af3-chain-option">
+      <input class="af3-chain-checkbox" type="checkbox" data-chain-id="${esc(chain.chain_id)}" ${checked} />
+      <span class="af3-chain-body">
+        <span class="af3-chain-title">Chain ${esc(chain.chain_id)} ${af3ChainBadges(chain)}</span>
+        <span class="af3-chain-meta">Length ${fmtNum(chain.length)} | ${esc(chain.polymer_type || "-")}</span>
+        <span class="af3-chain-meta">Mods: ${esc(modTypes)} | Positions: ${esc(modPositions)}</span>
+      </span>
+    </label>
+  `;
+}
+
+function renderAf3Input() {
+  const contentEl = document.getElementById("tabContent");
+  if (!contentEl) return;
+  const options = state.detail.af3Options;
+  if (!options) {
+    contentEl.innerHTML = '<p class="muted">Loading AF3 input options...</p>';
+    return;
+  }
+
+  const pairs = options.pairs || [];
+  const chains = options.chains || [];
+  const result = state.detail.af3Result;
+  const pairOptions = pairs
+    .map((pair) => {
+      const selected = state.af3Form.pairId === pair.pair_id ? "selected" : "";
+      const label = `${pair.pair_id} (${pair.chain1_id}-${pair.chain2_id}, ${pair.interface_kind})`;
+      return `<option value="${esc(pair.pair_id)}" ${selected}>${esc(label)}</option>`;
+    })
+    .join("");
+  const summary = result?.summary
+    ? `<div class="af3-summary">
+        <span>Chains: ${fmtNum(result.summary.chain_count)}</span>
+        <span>Seeds: ${fmtNum(result.summary.seed_count)}</span>
+        <span>Bonds: ${fmtNum(result.summary.bond_count)}</span>
+        <span>Modifications: ${fmtNum(result.summary.modification_count)}</span>
+      </div>`
+    : "";
+  const warnings = Array.isArray(result?.warnings) && result.warnings.length
+    ? `<div class="af3-warnings">${result.warnings.map((x) => `<div>${esc(x)}</div>`).join("")}</div>`
+    : "";
+  const jsonText = result?.config ? JSON.stringify(result.config, null, 2) : "";
+
+  contentEl.innerHTML = `
+    <p class="tab-intro">
+      Generate an AlphaFold 3 JSON input from this PepPCDB entry. See
+      <a class="ext-link" href="./docs/input.md" target="_blank" rel="noopener noreferrer">AF3 input format</a>.
+    </p>
+    <div class="af3-layout">
+      <div class="chain-panel af3-controls">
+        <div class="af3-field">
+          <label for="af3PairSelect">PepPI Pair</label>
+          <select id="af3PairSelect">${pairOptions}</select>
+        </div>
+        <div class="af3-field-grid">
+          <label class="af3-field" for="af3JobInput">
+            <span>Job ID</span>
+            <input id="af3JobInput" type="text" value="${esc(state.af3Form.jobId || options.defaults?.job_id || "")}" />
+          </label>
+          <label class="af3-field" for="af3SeedsInput">
+            <span>Seeds</span>
+            <input id="af3SeedsInput" type="text" value="${esc(state.af3Form.seeds || "42")}" placeholder="42 or 42,55" />
+          </label>
+        </div>
+        <div class="af3-toggle-row">
+          <label><input id="af3PeptideBonds" type="checkbox" ${state.af3Form.includePeptideBonds ? "checked" : ""} /> Peptide bonds</label>
+          <label><input id="af3ProteinBonds" type="checkbox" ${state.af3Form.includeProteinBonds ? "checked" : ""} /> Protein bonds</label>
+        </div>
+        <h3>Chains</h3>
+        <div class="af3-chain-grid">${chains.map(af3ChainCard).join("") || '<p class="muted">No chains available.</p>'}</div>
+        <div class="af3-action-row">
+          <button id="af3GenerateBtn" type="button">Generate AF3 JSON</button>
+        </div>
+      </div>
+      <div class="chain-panel af3-output">
+        <div class="chain-panel-head">
+          <strong>Generated Input</strong>
+          <div class="af3-output-actions">
+            <button id="af3CopyBtn" type="button" ${jsonText ? "" : "disabled"}>Copy</button>
+            <button id="af3DownloadBtn" type="button" ${jsonText ? "" : "disabled"}>Download</button>
+          </div>
+        </div>
+        ${summary}
+        ${warnings}
+        <pre class="af3-json"><code id="af3JsonOutput">${esc(jsonText || "Select chains and generate an AF3 JSON input.")}</code></pre>
+      </div>
+    </div>
+  `;
+}
+
 function renderActiveTab() {
   if (state.activeTab !== "structure") disposeMolstarViewer();
   if (state.activeTab === "overview") return renderOverview();
   if (state.activeTab === "annotations") return renderAnnotations();
   if (state.activeTab === "structure") return renderStructure();
+  if (state.activeTab === "af3") return renderAf3Input();
   return renderInterfaces();
 }
 
@@ -833,16 +1025,19 @@ async function loadDetail(entryKey) {
     interfaces: null,
     structure: null,
     interfaceDetails: {},
+    af3Options: null,
+    af3Result: null,
   };
 
   detailTitleEl.textContent = "Loading...";
   detailBodyEl.innerHTML = '<p class="muted">Loading entry details...</p>';
 
-  const [base, annotations, interfaces, structure] = await Promise.all([
+  const [base, annotations, interfaces, structure, af3Options] = await Promise.all([
     fetchJson(`/api/entries/${encodeURIComponent(entryKey)}`),
     fetchJson(`/api/entries/${encodeURIComponent(entryKey)}/annotations`),
     fetchJson(`/api/entries/${encodeURIComponent(entryKey)}/interfaces`),
     fetchJson(`/api/entries/${encodeURIComponent(entryKey)}/structure`),
+    fetchJson(`/api/entries/${encodeURIComponent(entryKey)}/af3-options`),
   ]);
 
   if (state.currentEntryKey !== entryKey) return;
@@ -851,6 +1046,8 @@ async function loadDetail(entryKey) {
   state.detail.annotations = annotations;
   state.detail.interfaces = interfaces;
   state.detail.structure = structure;
+  state.detail.af3Options = af3Options;
+  resetAf3Form(af3Options);
   if (interfaces && interfaces.pairs && interfaces.pairs.length > 0) {
     const firstPair = [...interfaces.pairs].sort((a, b) => String(a.pair_id || "").localeCompare(String(b.pair_id || "")))[0];
     state.selectedPairId = firstPair.pair_id;
@@ -877,6 +1074,56 @@ async function loadInterfacePair(pairId) {
   }
   state.selectedPairId = pairId;
   renderInterfaces();
+}
+
+async function generateAf3Input() {
+  const payload = af3PayloadFromForm();
+  if (!payload.chain_ids.length) {
+    throw new Error("Select at least one chain.");
+  }
+  if (payload.seeds.some((x) => !Number.isInteger(x))) {
+    throw new Error("Seeds must be integers.");
+  }
+  state.detail.af3Result = await fetchJsonPost(
+    `/api/entries/${encodeURIComponent(state.currentEntryKey)}/af3-input`,
+    payload
+  );
+  renderAf3Input();
+}
+
+async function copyAf3Json() {
+  const config = state.detail.af3Result?.config;
+  if (!config) return;
+  const text = JSON.stringify(config, null, 2);
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const temp = document.createElement("textarea");
+  temp.value = text;
+  temp.style.position = "fixed";
+  temp.style.left = "-9999px";
+  document.body.appendChild(temp);
+  temp.focus();
+  temp.select();
+  document.execCommand("copy");
+  temp.remove();
+}
+
+function downloadAf3Json() {
+  const config = state.detail.af3Result?.config;
+  if (!config) return;
+  const text = JSON.stringify(config, null, 2) + "\n";
+  const name = `${config.name || state.currentEntryKey || "peppcdb"}_af3_input.json`;
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function loadStats() {
@@ -930,6 +1177,28 @@ function bindDetailEvents() {
     if (!popoverPinned) showModPopover(target, tip);
   });
 
+  detailBodyEl.addEventListener("change", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === "af3PairSelect" && target instanceof HTMLSelectElement) {
+      updateAf3FormFromDom();
+      state.af3Form.pairId = target.value;
+      state.af3Form.chainIds = af3DefaultChainsForPair(target.value);
+      state.detail.af3Result = null;
+      renderAf3Input();
+      return;
+    }
+    if (
+      target.classList.contains("af3-chain-checkbox") ||
+      target.id === "af3PeptideBonds" ||
+      target.id === "af3ProteinBonds"
+    ) {
+      updateAf3FormFromDom();
+      state.detail.af3Result = null;
+      renderAf3Input();
+    }
+  });
+
   detailBodyEl.addEventListener("click", async (e) => {
     const target = e.target;
     if (target instanceof HTMLElement && target.classList.contains("mod-aa")) {
@@ -947,6 +1216,39 @@ function bindDetailEvents() {
     hideModPopover(true);
     const target2 = e.target;
     if (!(target2 instanceof HTMLElement)) return;
+
+    const af3GenerateBtn = target2.closest("#af3GenerateBtn");
+    if (af3GenerateBtn instanceof HTMLElement) {
+      af3GenerateBtn.textContent = "Generating...";
+      try {
+        await generateAf3Input();
+      } catch (err) {
+        state.detail.af3Result = {
+          config: null,
+          summary: null,
+          warnings: [err.message || String(err)],
+        };
+        renderAf3Input();
+      }
+      return;
+    }
+
+    const af3CopyBtn = target2.closest("#af3CopyBtn");
+    if (af3CopyBtn instanceof HTMLElement) {
+      await copyAf3Json();
+      af3CopyBtn.textContent = "Copied";
+      window.setTimeout(() => {
+        const btn = document.getElementById("af3CopyBtn");
+        if (btn) btn.textContent = "Copy";
+      }, 1200);
+      return;
+    }
+
+    const af3DownloadBtn = target2.closest("#af3DownloadBtn");
+    if (af3DownloadBtn instanceof HTMLElement) {
+      downloadAf3Json();
+      return;
+    }
 
     const tabBtn = target2.closest(".tab-btn");
     if (tabBtn instanceof HTMLElement) {
