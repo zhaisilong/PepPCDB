@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.7.3 - 2026-06-09
+
+### Changed
+
+- Updated runtime/document version to `v0.7.3`.
+- Reworked AF3 bond generation to use each entry's `<pdb_id>.json` `connect` records as the authoritative bond source.
+- Added automatic CCD ligand/glycan entities for selected covalent bonds, including peptide linker bonds and optional protein/glycan bonds.
+- Kept ordinary sequential peptide backbone `C-N` bonds filtered out while preserving non-sequential cyclic/linker bonds.
+
 ## v0.7.2 - 2026-06-09
 
 ### Changed

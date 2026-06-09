@@ -872,6 +872,7 @@ function renderAf3Input() {
   const summary = result?.summary
     ? `<div class="af3-summary">
         <span>Chains: ${fmtNum(result.summary.chain_count)}</span>
+        <span>Ligands: ${fmtNum(result.summary.ligand_count || 0)}</span>
         <span>Seeds: ${fmtNum(result.summary.seed_count)}</span>
         <span>Bonds: ${fmtNum(result.summary.bond_count)}</span>
         <span>Modifications: ${fmtNum(result.summary.modification_count)}</span>
@@ -905,7 +906,7 @@ function renderAf3Input() {
         </div>
         <div class="af3-toggle-row">
           <label><input id="af3PeptideBonds" type="checkbox" ${state.af3Form.includePeptideBonds ? "checked" : ""} /> Peptide bonds</label>
-          <label><input id="af3ProteinBonds" type="checkbox" ${state.af3Form.includeProteinBonds ? "checked" : ""} /> Protein bonds</label>
+          <label><input id="af3ProteinBonds" type="checkbox" ${state.af3Form.includeProteinBonds ? "checked" : ""} /> Protein/glycan bonds</label>
         </div>
         <h3>Chains</h3>
         <div class="af3-chain-grid">${chains.map(af3ChainCard).join("") || '<p class="muted">No chains available.</p>'}</div>

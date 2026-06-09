@@ -87,6 +87,7 @@ CCD_NAME_TO_ONE_LETTER = {
 
 PEPTIDE_BOND_TYPES = {"covale", "disulf"}
 PROTEIN_BOND_TYPES = {"covale", "disulf"}
+AF3_COVALENT_BOND_TYPES = PEPTIDE_BOND_TYPES | PROTEIN_BOND_TYPES
 
 
 class AF3InputError(ValueError):
@@ -123,6 +124,24 @@ def one_letter_for(code: Any) -> str:
     if len(raw) == 1 and raw in "ARNDCQEGHILKMFPSTWYVXOUBZ":
         return raw
     return CCD_NAME_TO_ONE_LETTER.get(raw, "X")
+
+
+def clean_token(value: Any) -> str:
+    raw = str(value or "").strip()
+    return "" if raw in {".", "?"} else raw
+
+
+def clean_code(value: Any) -> str:
+    return clean_token(value).upper()
+
+
+def to_int_or_none(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def unique_ordered(values: list[Any]) -> list[str]:
@@ -382,23 +401,6 @@ def sequence_entry(
     return {"protein": protein}
 
 
-def connect_to_bond(row: dict[str, Any]) -> list[Any] | None:
-    required = [
-        row.get("ptnr1_chain"),
-        row.get("ptnr1_seq"),
-        row.get("ptnr1_atom"),
-        row.get("ptnr2_chain"),
-        row.get("ptnr2_seq"),
-        row.get("ptnr2_atom"),
-    ]
-    if any(x in (None, "") for x in required):
-        return None
-    return [
-        [str(row["ptnr1_chain"]), int(row["ptnr1_seq"]), str(row["ptnr1_atom"])],
-        [str(row["ptnr2_chain"]), int(row["ptnr2_seq"]), str(row["ptnr2_atom"])],
-    ]
-
-
 def is_sequential_peptide_backbone_bond(row: dict[str, Any], peptide_chain_ids: set[str]) -> bool:
     c1 = str(row.get("ptnr1_chain") or "")
     c2 = str(row.get("ptnr2_chain") or "")
@@ -441,33 +443,238 @@ def normalize_connect(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def connect_endpoint(row: dict[str, Any], prefix: str) -> dict[str, Any]:
+    return {
+        "chain": clean_token(row.get(f"{prefix}_chain")),
+        "comp": clean_code(row.get(f"{prefix}_comp")),
+        "seq": to_int_or_none(row.get(f"{prefix}_seq")),
+        "atom": clean_token(row.get(f"{prefix}_atom")),
+    }
+
+
+def endpoint_is_polymer(endpoint: dict[str, Any], polymer_chain_ids: set[str]) -> bool:
+    return bool(endpoint["chain"] in polymer_chain_ids and endpoint["seq"] is not None)
+
+
+def endpoint_is_ligand(endpoint: dict[str, Any], polymer_chain_ids: set[str]) -> bool:
+    return bool(endpoint["comp"] and endpoint["atom"] and not endpoint_is_polymer(endpoint, polymer_chain_ids))
+
+
+def ligand_group_key(endpoint: dict[str, Any]) -> str:
+    return endpoint["chain"] or f"ligand_{endpoint['comp']}"
+
+
+def make_ligand_entity_id(raw_key: str, used_ids: set[str]) -> str:
+    base = clean_token(raw_key) or "LIG"
+    candidate = base if base not in used_ids else f"{base}_lig"
+    i = 2
+    while candidate in used_ids:
+        candidate = f"{base}_lig{i}"
+        i += 1
+    used_ids.add(candidate)
+    return candidate
+
+
+def ligand_group(
+    groups: dict[str, dict[str, Any]],
+    endpoint: dict[str, Any],
+    used_ids: set[str],
+) -> dict[str, Any]:
+    key = ligand_group_key(endpoint)
+    if key not in groups:
+        groups[key] = {
+            "raw_key": key,
+            "entity_id": make_ligand_entity_id(key, used_ids),
+            "instances": [],
+        }
+    return groups[key]
+
+
+def create_ligand_instance(group: dict[str, Any], comp: str, explicit_seq: int | None = None) -> int:
+    if explicit_seq is not None and explicit_seq > 0:
+        while len(group["instances"]) < explicit_seq:
+            group["instances"].append("")
+        if not group["instances"][explicit_seq - 1]:
+            group["instances"][explicit_seq - 1] = comp
+        return explicit_seq
+    group["instances"].append(comp)
+    return len(group["instances"])
+
+
+def find_ligand_instance(group: dict[str, Any], comp: str) -> int | None:
+    for i, existing in enumerate(group["instances"], 1):
+        if existing == comp:
+            return i
+    return None
+
+
+def try_resolve_ligand_endpoint(
+    endpoint: dict[str, Any],
+    groups: dict[str, dict[str, Any]],
+    used_ids: set[str],
+) -> list[Any] | None:
+    group = ligand_group(groups, endpoint, used_ids)
+    if endpoint["seq"] is not None and endpoint["seq"] > 0:
+        seq = create_ligand_instance(group, endpoint["comp"], endpoint["seq"])
+        return [group["entity_id"], seq, endpoint["atom"]]
+    if endpoint["atom"].upper() == "C1":
+        return None
+    seq = find_ligand_instance(group, endpoint["comp"])
+    if seq is None:
+        return None
+    return [group["entity_id"], seq, endpoint["atom"]]
+
+
+def resolve_ligand_endpoint(
+    endpoint: dict[str, Any],
+    groups: dict[str, dict[str, Any]],
+    used_ids: set[str],
+    *,
+    prefer_existing: bool = True,
+) -> list[Any] | None:
+    if not endpoint["comp"] or not endpoint["atom"]:
+        return None
+    if prefer_existing:
+        resolved = try_resolve_ligand_endpoint(endpoint, groups, used_ids)
+        if resolved:
+            return resolved
+    group = ligand_group(groups, endpoint, used_ids)
+    seq = create_ligand_instance(group, endpoint["comp"], endpoint["seq"])
+    return [group["entity_id"], seq, endpoint["atom"]]
+
+
+def resolve_ligand_pair_endpoints(
+    endpoint1: dict[str, Any],
+    endpoint2: dict[str, Any],
+    groups: dict[str, dict[str, Any]],
+    used_ids: set[str],
+) -> tuple[list[Any] | None, list[Any] | None]:
+    atom1 = try_resolve_ligand_endpoint(endpoint1, groups, used_ids)
+    atom2 = try_resolve_ligand_endpoint(endpoint2, groups, used_ids)
+    if atom1 and atom2:
+        return atom1, atom2
+    if atom1:
+        return atom1, resolve_ligand_endpoint(endpoint2, groups, used_ids, prefer_existing=False)
+    if atom2:
+        return resolve_ligand_endpoint(endpoint1, groups, used_ids, prefer_existing=False), atom2
+
+    first, second = endpoint1, endpoint2
+    if endpoint1["atom"].upper() == "C1" and endpoint2["atom"].upper() != "C1":
+        first, second = endpoint2, endpoint1
+    atom_first = resolve_ligand_endpoint(first, groups, used_ids, prefer_existing=False)
+    atom_second = resolve_ligand_endpoint(second, groups, used_ids, prefer_existing=False)
+    if first is endpoint1:
+        return atom_first, atom_second
+    return atom_second, atom_first
+
+
+def resolve_connect_bond(
+    row: dict[str, Any],
+    polymer_chain_ids: set[str],
+    groups: dict[str, dict[str, Any]],
+    used_ids: set[str],
+) -> list[Any] | None:
+    endpoint1 = connect_endpoint(row, "ptnr1")
+    endpoint2 = connect_endpoint(row, "ptnr2")
+    p1_poly = endpoint_is_polymer(endpoint1, polymer_chain_ids)
+    p2_poly = endpoint_is_polymer(endpoint2, polymer_chain_ids)
+    p1_lig = endpoint_is_ligand(endpoint1, polymer_chain_ids)
+    p2_lig = endpoint_is_ligand(endpoint2, polymer_chain_ids)
+
+    if p1_poly and p2_poly:
+        return [
+            [endpoint1["chain"], endpoint1["seq"], endpoint1["atom"]],
+            [endpoint2["chain"], endpoint2["seq"], endpoint2["atom"]],
+        ]
+    if p1_poly and p2_lig:
+        atom2 = resolve_ligand_endpoint(endpoint2, groups, used_ids)
+        return [[endpoint1["chain"], endpoint1["seq"], endpoint1["atom"]], atom2] if atom2 else None
+    if p1_lig and p2_poly:
+        atom1 = resolve_ligand_endpoint(endpoint1, groups, used_ids)
+        return [atom1, [endpoint2["chain"], endpoint2["seq"], endpoint2["atom"]]] if atom1 else None
+    if p1_lig and p2_lig:
+        atom1, atom2 = resolve_ligand_pair_endpoints(endpoint1, endpoint2, groups, used_ids)
+        return [atom1, atom2] if atom1 and atom2 else None
+    return None
+
+
+def connect_ligand_groups(row: dict[str, Any], polymer_chain_ids: set[str]) -> set[str]:
+    groups = set()
+    for prefix in ("ptnr1", "ptnr2"):
+        endpoint = connect_endpoint(row, prefix)
+        if endpoint_is_ligand(endpoint, polymer_chain_ids):
+            groups.add(ligand_group_key(endpoint))
+    return groups
+
+
+def is_ligand_ligand_connect(row: dict[str, Any], polymer_chain_ids: set[str]) -> bool:
+    return all(endpoint_is_ligand(connect_endpoint(row, prefix), polymer_chain_ids) for prefix in ("ptnr1", "ptnr2"))
+
+
 def bonded_atom_pairs(
     connect_rows: list[dict[str, Any]],
-    selected_chain_ids: set[str],
+    selected_chain_ids: list[str],
+    polymer_chain_ids: set[str],
     peptide_chain_ids: set[str],
     include_peptide_bonds: bool,
     include_protein_bonds: bool,
     warnings: list[str],
-) -> list[list[Any]]:
-    out: list[list[Any]] = []
-    seen: set[tuple[Any, ...]] = set()
-    skipped_incomplete = 0
-    for row in connect_rows:
-        row = normalize_connect(row)
-        c1 = str(row.get("ptnr1_chain") or "")
-        c2 = str(row.get("ptnr2_chain") or "")
-        if c1 not in selected_chain_ids or c2 not in selected_chain_ids:
+) -> tuple[list[list[Any]], list[dict[str, Any]], dict[str, int]]:
+    selected_set = set(selected_chain_ids)
+    normalized_rows = [(i, normalize_connect(row)) for i, row in enumerate(connect_rows)]
+    included_indices: list[int] = []
+    included_set: set[int] = set()
+    seeded_ligand_groups: set[str] = set()
+    skipped_non_covalent = 0
+    skipped_backbone = 0
+
+    for idx, row in normalized_rows:
+        ctype = str(row.get("type") or row.get("connect_type") or "").strip().lower()
+        if ctype not in AF3_COVALENT_BOND_TYPES:
+            if any(connect_endpoint(row, prefix)["chain"] in selected_set for prefix in ("ptnr1", "ptnr2")):
+                skipped_non_covalent += 1
+            continue
+
+        endpoints = [connect_endpoint(row, "ptnr1"), connect_endpoint(row, "ptnr2")]
+        polymer_endpoints = [e for e in endpoints if endpoint_is_polymer(e, polymer_chain_ids)]
+        if polymer_endpoints and any(e["chain"] not in selected_set for e in polymer_endpoints):
+            continue
+
+        touches_peptide = any(e["chain"] in peptide_chain_ids for e in polymer_endpoints)
+        touches_protein = any(e["chain"] not in peptide_chain_ids for e in polymer_endpoints)
+        include = False
+        if touches_peptide:
+            include = include_peptide_bonds and ctype in PEPTIDE_BOND_TYPES
+            if include and is_sequential_peptide_backbone_bond(row, peptide_chain_ids):
+                skipped_backbone += 1
+                include = False
+        elif touches_protein:
+            include = include_protein_bonds and ctype in PROTEIN_BOND_TYPES
+
+        if include:
+            included_indices.append(idx)
+            included_set.add(idx)
+            seeded_ligand_groups.update(connect_ligand_groups(row, polymer_chain_ids))
+
+    for idx, row in normalized_rows:
+        if idx in included_set:
             continue
         ctype = str(row.get("type") or row.get("connect_type") or "").strip().lower()
-        peptide_related = c1 in peptide_chain_ids or c2 in peptide_chain_ids
-        if peptide_related:
-            if not include_peptide_bonds or ctype not in PEPTIDE_BOND_TYPES:
-                continue
-            if is_sequential_peptide_backbone_bond(row, peptide_chain_ids):
-                continue
-        elif not include_protein_bonds or ctype not in PROTEIN_BOND_TYPES:
+        if ctype not in AF3_COVALENT_BOND_TYPES or not is_ligand_ligand_connect(row, polymer_chain_ids):
             continue
-        bond = connect_to_bond(row)
+        if connect_ligand_groups(row, polymer_chain_ids) & seeded_ligand_groups:
+            included_indices.append(idx)
+            included_set.add(idx)
+
+    out: list[list[Any]] = []
+    groups: dict[str, dict[str, Any]] = {}
+    used_ids = set(polymer_chain_ids)
+    seen: set[tuple[Any, ...]] = set()
+    skipped_incomplete = 0
+    row_by_idx = dict(normalized_rows)
+    for idx in included_indices:
+        row = row_by_idx[idx]
+        bond = resolve_connect_bond(row, polymer_chain_ids, groups, used_ids)
         if not bond:
             skipped_incomplete += 1
             continue
@@ -476,9 +683,28 @@ def bonded_atom_pairs(
             continue
         seen.add(key)
         out.append(bond)
+    ligand_entries = []
+    for group in groups.values():
+        ccd_codes = [comp for comp in group["instances"] if comp]
+        if not ccd_codes:
+            continue
+        ligand_entries.append(
+            {
+                "ligand": {
+                    "id": group["entity_id"],
+                    "ccdCodes": ccd_codes,
+                    "description": f"PepPCDB ligand/linker entity {group['raw_key']}",
+                }
+            }
+        )
     if skipped_incomplete:
         warnings.append(f"Skipped {skipped_incomplete} connect records without residue-level atom pairs")
-    return out
+    return out, ligand_entries, {
+        "ligand_count": len(ligand_entries),
+        "skipped_backbone_bonds": skipped_backbone,
+        "skipped_incomplete_bonds": skipped_incomplete,
+        "skipped_non_covalent_bonds": skipped_non_covalent,
+    }
 
 
 def build_af3_input(
@@ -520,14 +746,16 @@ def build_af3_input(
         sequence_entry(chain_by_id[chain_id], pdb_id, context["peptide_chain_ids"], warnings)
         for chain_id in selected_chain_ids
     ]
-    bonds = bonded_atom_pairs(
+    bonds, ligand_entries, bond_stats = bonded_atom_pairs(
         context["meta"].get("connect", []) or [],
-        set(selected_chain_ids),
+        selected_chain_ids,
+        set(chain_by_id),
         context["peptide_chain_ids"],
         include_peptide_bonds,
         include_protein_bonds,
         warnings,
     )
+    sequences.extend(ligand_entries)
 
     config: dict[str, Any] = {
         "name": safe_job_id(job_id, pdb_id),
@@ -539,7 +767,7 @@ def build_af3_input(
     if bonds:
         config["bondedAtomPairs"] = bonds
 
-    modifications_count = sum(len(item["protein"].get("modifications", [])) for item in sequences)
+    modifications_count = sum(len((item.get("protein") or {}).get("modifications", [])) for item in sequences)
     return {
         "entry_key": pdb_id,
         "pdb_id": pdb_id,
@@ -548,11 +776,14 @@ def build_af3_input(
             "pair_id": selected_pair_id,
             "chain_ids": selected_chain_ids,
             "chain_count": len(selected_chain_ids),
+            "ligand_count": bond_stats["ligand_count"],
             "seed_count": len(config["modelSeeds"]),
             "bond_count": len(bonds),
             "modification_count": modifications_count,
             "include_peptide_bonds": include_peptide_bonds,
             "include_protein_bonds": include_protein_bonds,
+            "skipped_backbone_bonds": bond_stats["skipped_backbone_bonds"],
+            "skipped_non_covalent_bonds": bond_stats["skipped_non_covalent_bonds"],
         },
         "warnings": warnings,
     }
