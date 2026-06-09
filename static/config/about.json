@@ -1,6 +1,11 @@
 {
   "development_log": [
     {
+      "date": "2026-06-09",
+      "update": "Home navigation and local 3D display were refined",
+      "note": "Added Home CTA links for Browse, Status, About, and GitHub; integrated the PepPCDB banner and local Mol* structure rendering."
+    },
+    {
       "date": "2026-05-27",
       "update": "PepPCDB display was optimized and the deployment project was updated on GitHub",
       "note": "Refined Home layout, download naming, and function/affinity downloads; pushed the current deployment code to GitHub and deployed it on the server."

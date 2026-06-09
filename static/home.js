@@ -4,6 +4,7 @@ const API_BASE = (() => {
   if (path.endsWith("/")) return path.slice(0, -1);
   return "";
 })();
+const GITHUB_REPO_API = "https://api.github.com/repos/zhaisilong/PepPCDB";
 
 function esc(s) {
   return String(s ?? "")
@@ -20,6 +21,16 @@ function fmtNum(n) {
 
 async function fetchJson(path) {
   const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json();
+}
+
+async function fetchExternalJson(url) {
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github+json",
+    },
+  });
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json();
 }
@@ -48,6 +59,20 @@ function renderHomeStats(data) {
     .join("");
 }
 
+async function renderGithubStars() {
+  const starsEl = document.getElementById("githubStars");
+  if (!starsEl) return;
+  try {
+    const data = await fetchExternalJson(GITHUB_REPO_API);
+    const stars = Number(data.stargazers_count);
+    if (!Number.isFinite(stars)) return;
+    starsEl.textContent = fmtNum(stars);
+    starsEl.classList.remove("is-hidden");
+  } catch (err) {
+    console.warn("Failed to load GitHub stars", err);
+  }
+}
+
 async function init() {
   const copyrightYearEl = document.getElementById("copyrightYear");
   if (copyrightYearEl) copyrightYearEl.textContent = String(new Date().getFullYear());
@@ -58,6 +83,7 @@ async function init() {
     const url = `./browse.html?pdb_id=${encodeURIComponent(requestedEntry)}`;
     hintEl.innerHTML = `Looking for ${esc(requestedEntry.toUpperCase())}? <a href="${url}">Open it in Browse</a>.`;
   }
+  renderGithubStars();
   renderHomeStats(await fetchJson("/api/stats"));
 }
 

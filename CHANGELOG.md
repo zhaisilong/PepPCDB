@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.6.3 - 2026-06-09
+
+### Added
+
+- Added Home hero CTA links for About and the GitHub repository.
+- Added a live GitHub stars count beside the Home GitHub action.
+- Added the PepPCDB banner image to the Home page before the feature overview.
+
+### Changed
+
+- Updated runtime/document version to `v0.6.3`.
+- Refined Home banner sizing so the image fills the banner frame without cropping.
+- Updated the About page development log with the latest Home navigation and local 3D display work.
+
+### Fixed
+
+- Increased the top navigation stacking layer and click target area so the upper-right links remain clickable.
+
 ## v0.6.2 - 2026-06-09
 
 ### Added
