@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.3 - 2026-06-17
+
+### Data
+
+- Refreshed the deployment database with the latest affinity-patched peptide function annotations.
+- Restored newly curated function annotations for recent PDB entries that were present in `function_mannual/records/pep_annotations.jsonl` but missing from the previous patched deployment file.
+- Retained 2,052 curated affinity annotation rows while increasing deployed peptide annotation coverage from 14,305 to 14,658 rows.
+- Current deployment check: 14,746 SQLite entries, 22,339 peptide chains, 50,698 interface pairs, 28,207 peptide-protein (`PepPI`) interfaces, 2,935 clusters, 7,832 target cards, 14,658 peptide annotations, and 2,052 affinity annotation rows.
+
 ## v0.8.2 - 2026-06-17
 
 ### Data
