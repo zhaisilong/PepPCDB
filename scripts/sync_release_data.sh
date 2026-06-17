@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_ROOT="${SOURCE_ROOT:-/home/silong/codex/peptarget}"
 
-SOURCE_DATASET="${SOURCE_DATASET:-$SOURCE_ROOT/4.peptide/filtered_peppi_v3}"
+SOURCE_DATASET="${SOURCE_DATASET:-$SOURCE_ROOT/4.peptide/filtered_peppi_v4}"
 SOURCE_TARGET_CARDS="${SOURCE_TARGET_CARDS:-$SOURCE_ROOT/function_mannual/records/target_cards.jsonl}"
 SOURCE_PEP_ANNOTATIONS="${SOURCE_PEP_ANNOTATIONS:-$SOURCE_ROOT/function_mannual/affinity/pep_annotations_patched.jsonl}"
 SOURCE_PATCH_REPORT="${SOURCE_PATCH_REPORT:-$SOURCE_ROOT/function_mannual/affinity/pep_annotations_patched.report.json}"
@@ -27,4 +27,3 @@ echo "[4/4] Copying affinity patch report"
 cp "$SOURCE_PATCH_REPORT" "$DEST_RECORDS/pep_annotations_patched.report.json"
 
 echo "Data sync complete."
-

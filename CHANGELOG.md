@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.8.0 - 2026-06-17
+
+### Changed
+
+- Updated runtime/document version to `v0.8.0`.
+- Refreshed the default deployment structure source to the 2026-06-17 PDB-derived `filtered_peppi_v4` snapshot.
+- Updated the default PDB source snapshot date shown by the API and frontend to `2026-06-17`.
+- Documented that structural data refreshes may be released before manual function and affinity annotations are complete for every newly added entry.
+
+### Data
+
+- Current deployment check: 16,642 synchronized entry directories, 14,746 SQLite entries, 22,339 peptide chains, 50,698 interface pairs, 28,207 peptide-protein (`PepPI`) interfaces, 2,935 clusters, 7,695 target cards, 14,305 peptide annotations, and 2,052 affinity annotation rows.
+- Manual function and affinity annotations remain curated records; newly added structural entries can be present in search/download/AF3 workflows before annotation coverage catches up.
+
 ## v0.7.3 - 2026-06-09
 
 ### Changed

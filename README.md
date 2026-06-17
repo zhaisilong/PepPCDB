@@ -50,7 +50,7 @@ Default runtime paths:
 
 Current upstream sources:
 
-- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi_v3`
+- Structure dataset: `/home/silong/codex/peptarget/4.peptide/filtered_peppi_v4`
 - Target cards: `/home/silong/codex/peptarget/function_mannual/records/target_cards.jsonl`
 - Pep annotations with affinity patch: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.jsonl`
 - Affinity patch report: `/home/silong/codex/peptarget/function_mannual/affinity/pep_annotations_patched.report.json`
@@ -69,6 +69,8 @@ When the upstream dataset or annotation records change, refresh the deployment c
 ```
 
 `sync_release_data.sh` uses `rsync --delete` for `filtered_peppi`, so the deployment copy exactly matches the upstream structure dataset. After refresh, record the dataset or annotation change in `CHANGELOG.md`.
+
+Structural dataset refreshes can be published before every newly added entry has manual function or affinity annotation. Unannotated entries still support search, structural browsing, downloads, local 3D viewing, and AF3 input generation; curated function and affinity coverage can be updated in later annotation releases.
 
 ## AlphaFold 3 Input Generation
 
@@ -104,7 +106,7 @@ Public download API requests are limited to 100 requests per client IP per hour 
 
 PepPCDB records lightweight aggregate usage statistics in `data/usage_stats.sqlite3`. Home page visits and quick download API usage are counted as daily unique IP hashes, with one visit and one download counted per client IP per day.
 
-Raw IP addresses are not stored. If `PEPPCDB_USAGE_SALT` is not set, `run.sh` creates a private local salt at `data/usage_salt` and exports it before starting the app. Keep this file stable across restarts to preserve daily unique counting continuity, and do not commit it. The About page displays aggregate visit/download totals from:
+Raw IP addresses are not stored. If `PEPPCDB_USAGE_SALT` is not set, `run.sh` creates a private local salt at `data/usage_salt` and exports it before starting the app. Keep this file stable across restarts to preserve daily unique counting continuity, and do not commit it. The Status page displays aggregate visit/download totals from:
 
 ```text
 GET /peppcdb/api/usage-stats
@@ -112,4 +114,4 @@ GET /peppcdb/api/usage-stats
 
 ## Versioning
 
-Version history starts at `v0.1.0`. The current document/runtime version is `v0.7.3`. This repository does not use git tags unless that release policy changes later.
+Version history starts at `v0.1.0`. The current document/runtime version is `v0.8.0`. This repository does not use git tags unless that release policy changes later.
