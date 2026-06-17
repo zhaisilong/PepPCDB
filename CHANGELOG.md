@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.8.2 - 2026-06-17
+
+### Data
+
+- Refreshed the deployment database after completing target-card annotation updates.
+- Current deployment check: 14,746 SQLite entries, 22,339 peptide chains, 50,698 interface pairs, 28,207 peptide-protein (`PepPI`) interfaces, 2,935 clusters, 7,832 target cards, 14,305 peptide annotations, and 2,052 affinity annotation rows.
+
 ## v0.8.1 - 2026-06-17
 
 ### Fixed
