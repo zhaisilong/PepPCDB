@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.8.1 - 2026-06-17
+
+### Fixed
+
+- Cleaned Browse detail citation display by removing PDB-derived wrapping semicolons, quotes, newlines, and zero-width artifacts while preserving meaningful internal punctuation.
+- Cleaned Nonpoly entity name display with the same boundary-only normalization and improved long-name wrapping in the annotations table.
+
 ## v0.8.0 - 2026-06-17
 
 ### Changed

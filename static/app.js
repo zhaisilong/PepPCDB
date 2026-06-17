@@ -102,6 +102,16 @@ function formatAffinityText(text) {
   );
 }
 
+function cleanDisplayText(raw) {
+  let v = String(raw ?? "");
+  if (!v) return "";
+  v = v.replace(/&(?:#8203|#x200b|ZeroWidthSpace);/gi, "");
+  v = v.replace(/[\u200B-\u200D\uFEFF]/g, "");
+  v = v.replace(/\s+/g, " ").trim();
+  v = v.replace(/^[\s;"'\u2018\u2019\u201C\u201D]+|[\s;"'\u2018\u2019\u201C\u201D]+$/g, "").trim();
+  return v.replace(/\s+/g, " ");
+}
+
 function publicDownloadName(pdbId, fileName) {
   const raw = String(fileName || "").trim();
   const prefix = String(pdbId || "").trim().toLowerCase();
@@ -141,27 +151,22 @@ function setUrlEntryKey(entryKey) {
 }
 
 function normalizeDoi(raw) {
-  let v = String(raw ?? "").trim();
+  let v = cleanDisplayText(raw);
   if (!v) return "";
   v = v.replace(/^doi:\s*/i, "").trim();
-  v = v.replace(/^['"]+|['"]+$/g, "").trim();
-  return v;
+  v = v.replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, "").trim();
+  return cleanDisplayText(v);
 }
 
 function normalizePmid(raw) {
-  let v = String(raw ?? "").trim();
+  let v = cleanDisplayText(raw);
   if (!v) return "";
   v = v.replace(/^pmid:\s*/i, "").trim();
-  v = v.replace(/^['"]+|['"]+$/g, "").trim();
-  return v;
+  return cleanDisplayText(v);
 }
 
 function normalizeCitationText(raw) {
-  let v = String(raw ?? "").trim();
-  if (!v) return "";
-  v = v.replace(/^['"]+|['"]+$/g, "").trim();
-  v = v.replace(/\s+/g, " ");
-  return v;
+  return cleanDisplayText(raw);
 }
 
 async function fetchJson(path) {
@@ -412,7 +417,9 @@ function renderOverview() {
         ? `<a class="ext-link" target="_blank" rel="noopener noreferrer" href="https://doi.org/${encodeURI(doiValue)}">${esc(doiValue)}</a>`
         : "-";
       const pmid = pmidValue
-        ? `<a class="ext-link" target="_blank" rel="noopener noreferrer" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(pmidValue)}/">${esc(pmidValue)}</a>`
+        ? (/^\d+$/.test(pmidValue)
+            ? `<a class="ext-link" target="_blank" rel="noopener noreferrer" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(pmidValue)}/">${esc(pmidValue)}</a>`
+            : esc(pmidValue))
         : "-";
       return `<tr><td>${esc(titleValue)}</td><td>${esc(journalValue)}</td><td>${esc(yearValue)}</td><td>${doi}</td><td>${pmid}</td></tr>`;
     })
@@ -527,7 +534,7 @@ function renderAnnotations() {
     .join("");
 
   const nonpoly = data.nonpoly
-    .map((x) => `<tr><td>${esc(x.entity_id || "")}</td><td>${esc(x.comp_id || "")}</td><td>${esc(x.name || "")}</td></tr>`)
+    .map((x) => `<tr><td>${esc(x.entity_id || "")}</td><td>${esc(x.comp_id || "")}</td><td>${esc(cleanDisplayText(x.name) || "")}</td></tr>`)
     .join("");
 
   const connect = data.connect
@@ -559,7 +566,7 @@ function renderAnnotations() {
     </div>
     <h3>Nonpoly</h3>
     <div class="table-wrap">
-      <table class="dense-table"><thead><tr><th>Entity</th><th>Comp</th><th>Name</th></tr></thead><tbody>${nonpoly || '<tr><td colspan="3">-</td></tr>'}</tbody></table>
+      <table class="dense-table nonpoly-table"><thead><tr><th>Entity</th><th>Comp</th><th>Name</th></tr></thead><tbody>${nonpoly || '<tr><td colspan="3">-</td></tr>'}</tbody></table>
     </div>
     <h3>Connect</h3>
     <div class="table-wrap">

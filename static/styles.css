@@ -735,6 +735,28 @@ tbody tr:hover {
   word-break: break-word;
 }
 
+.nonpoly-table {
+  table-layout: fixed;
+}
+
+.nonpoly-table th:nth-child(1),
+.nonpoly-table td:nth-child(1) {
+  width: 12%;
+}
+
+.nonpoly-table th:nth-child(2),
+.nonpoly-table td:nth-child(2) {
+  width: 16%;
+}
+
+.nonpoly-table th:nth-child(3),
+.nonpoly-table td:nth-child(3) {
+  width: 72%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .chip {
   display: inline-block;
   padding: 2px 8px;
